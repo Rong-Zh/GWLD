@@ -1,0 +1,13 @@
+1. C++ library
+  armadillo  http://arma.sourceforge.net/download.html
+  
+2. cmake >= 3.9 https://cmake.org/download/
+
+3. how to install
+  $ mkdir build && cd build
+  $ cmake ..
+  $ make
+  $ ../bin/GGLD
+
+4. source code install 
+  $ g++ -std=c++11 -o bin/GGLD src/main.cpp src/filedeal.cpp src/methods.cpp src/utils.cpp -I include -larmadillo -fopenmp
