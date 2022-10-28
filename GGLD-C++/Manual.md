@@ -4,21 +4,25 @@
 
 1. 依赖
 
-* armadillo <http://arma.sourceforge.net/download.html>
+* [armadillo](http://arma.sourceforge.net/download.html)
 * openmp
   
 2. 使用Cmake安装
 
-* cmake >= 3.9 <https://cmake.org/download/>
+* [cmake](https://cmake.org/download/) >= 3.9
 
+```bash
         $ mkdir build && cd build
         $ cmake ..
         $ make
         $ ../bin/GGLD
-3. 源代码安装
+```
 
-        $g++ -std=c++11 -o bin/GGLD src/main.cpp src/filedeal.cpp src/methods.cpp src/utils.cpp -I include -larmadillo -fopenmp
+1. 源代码安装
 
+```bash
+        $ g++ -std=c++11 -o bin/GGLD src/main.cpp src/filedeal.cpp src/methods.cpp src/utils.cpp -I include -larmadillo -fopenmp
+```
 &nbsp;
 
 ## 1. 参数列表<!--Parameter list-->
@@ -46,19 +50,27 @@
 
 ### 2.1 计算相同染色体上两个位点之间连锁不平衡的值, 可选择的计算方法有($D$, $D'$, $r^2$, $MI$, $RMI$)
 
+```bash
         ./GGLD  -vcf test.vcf -m RMI --by-chrom -p 10 -o result
+```
 
 ### 2.2 计算不同染色体上两个位点之间连锁不平衡的值, 可选择的计算方法有($MI$, $RMI$)
 
+```bash
         ./GGLD  -vcf test.vcf -m RMI -p 10 -o result
+```
 
 ### 2.3 选择不同方法计算整个基因组的LD decay, 默认计算两个位点之间的最大距离为300Kb, 可使用(--max-dist 参数设置)
 
+```bash
         ./GGLD -vcf test.vcf -m RMI -decay -p 10 -o result
+```
 
 ### 2.4 不同染色体间连锁不平衡可视化
 
+```bash
         ./GGLD -vcf test.vcf -m RMI -circos -p 10 -o result
+```
 
 &nbsp;<!--添加空行-->
 
@@ -68,29 +80,44 @@
 
 1. Plink文件格式(\*.bed, \*.bim和 \*.fam)转换为VCF文件格式
 
+```bash
         ./GGLD -bfile test -2vcf -o result
+```
 
 2. Plink文件格式(\*.ped and \*.map)转换为VCF文件格式
 
+```bash
         ./GGLD -file test -m -2vcf -o result
+```
 
 ### 3.2 统计染色体上的标记数量以及起始相对位置和终止相对位置
 
+```bash
         ./GGLD -vcf test.vcf --chr-info -o result
+```
 
 ### 3.3 统计染色体上双等位基因的等位基因频率
 
+```bash
         ./GGLD -vcf test.vcf --allele-freq -o result
+```
 
 ### 3.4 基因型重新编码为-1, 0, 1, 2(其中-1 表示为缺失值),并以VCF文件格式输出
 
 1. Plink 格式(\*.bed, \*.bim和 \*.fam)
 
+```bash
         ./GGLD -bfile test --code012 -o result
+```
+
 2. Plink 格式(\*.ped and \*.map)
 
+```bash
         ./GGLD -file test --code012 -o result
+```
 
 3. VCF 格式
 
+```bash
         ./GGLD -vcf test.vcf --code012 -o result
+```
