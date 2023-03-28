@@ -13,18 +13,35 @@ using namespace arma;
 // [[Rcpp::export]]
 double RMIC(arma::Col<int> & g1, arma::Col<int> & g2) {
     
-    arma::Col<int> fg = arma::unique(g1); //unique 去重并按升序排
-    arma::Col<int> sg = arma::unique(g2);
-    arma::Col<int> r = fg.elem(find(fg != NA_INTEGER));
-    arma::Col<int> s = sg.elem(find(sg != NA_INTEGER));
-    double R = r.n_elem, S = s.n_elem, len = g1.n_elem; //不用int而用double是为了避免下面计算过程中精度丢失。
-    arma::Mat<double> m(R, S, fill::zeros);//用0来填充
-    for(int i=0; i<len; i++){
-        if(g1[i]!= NA_INTEGER && g2[i]!= NA_INTEGER){
-            m(g1[i], g2[i]) +=1;
+    if (g1.n_elem != g2.n_elem) {
+        throw Rcpp::exception("g1 and g2 have different length");
+    }
+    //unique去重并按升序排
+    arma::Col<int> set_g1 = arma::unique(g1); 
+    arma::Col<int> set_g2 = arma::unique(g2); 
+    //去掉set中NA值
+    arma::Col<int> row_names = set_g1.elem(find(set_g1 != NA_INTEGER));
+    arma::Col<int> col_names = set_g2.elem(find(set_g2 != NA_INTEGER));
+    int len = g1.n_elem;
+    //防止进度丢失
+    double R = row_names.n_elem, S = col_names.n_elem; 
+    std::unordered_map<int, int> row_index;
+    for (int i=0; i<R; i++) {
+        row_index[row_names[i]] = i;
+    }
+    std::unordered_map<int, int> col_index;
+    for (int j=0; j<S; j++) {
+        col_index[col_names[j]] = j;
+    }
+    //使用double防止进度丢失，用0.0来填充
+    arma::Mat<double> m(R, S, fill::zeros);
+    for(int k=0; k<len; k++){
+        if(g1[k]!= NA_INTEGER && g2[k]!= NA_INTEGER){
+            m(row_index[g1[k]], col_index[g2[k]]) +=1;
         }
     }
-    double n = accu(m);//所有元素和
+    //所有元素和
+    double n = accu(m);
     arma::Col<double> a = sum(m,1); 
     arma::Row<double> b = sum(m,0); //1是行, 0是列
     double I = (lgamma(n+1) + accu(lgamma(m+1)) - accu(lgamma(a+1)) - accu(lgamma(b+1))) / (n*log(2));
@@ -66,18 +83,35 @@ arma::Mat<double> RMIC_Mat(arma::Mat<int> & geno012, int cores=1) {
 // [[Rcpp::export]]
 double MIC(arma::Col<int> & g1, arma::Col<int> & g2) {
     
-    arma::Col<int> fg = arma::unique(g1); //unique 去重并按升序排
-    arma::Col<int> sg = arma::unique(g2);
-    arma::Col<int> r = fg.elem(find(fg != NA_INTEGER));
-    arma::Col<int> s = sg.elem(find(sg != NA_INTEGER));
-    double R = r.n_elem, S = s.n_elem, len = g1.n_elem; //不用int而用double是为了避免下面计算过程中精度丢失。
-    arma::Mat<double> m(R, S, fill::zeros);//用0来填充
-    for(int i=0; i<len; i++){
-        if(g1[i]!= NA_INTEGER && g2[i]!= NA_INTEGER){
-            m(g1[i], g2[i]) +=1;
+    if (g1.n_elem != g2.n_elem) {
+        throw Rcpp::exception("g1 and g2 have different length");
+    }
+    //unique去重并按升序排
+    arma::Col<int> set_g1 = arma::unique(g1); 
+    arma::Col<int> set_g2 = arma::unique(g2); 
+    //去掉set中NA值
+    arma::Col<int> row_names = set_g1.elem(find(set_g1 != NA_INTEGER));
+    arma::Col<int> col_names = set_g2.elem(find(set_g2 != NA_INTEGER));
+    int len = g1.n_elem;
+    //防止进度丢失
+    double R = row_names.n_elem, S = col_names.n_elem; 
+    std::unordered_map<int, int> row_index;
+    for (int i=0; i<R; i++) {
+        row_index[row_names[i]] = i;
+    }
+    std::unordered_map<int, int> col_index;
+    for (int j=0; j<S; j++) {
+        col_index[col_names[j]] = j;
+    }
+    //使用double防止进度丢失，用0.0来填充
+    arma::Mat<double> m(R, S, fill::zeros);
+    for(int k=0; k<len; k++){
+        if(g1[k]!= NA_INTEGER && g2[k]!= NA_INTEGER){
+            m(row_index[g1[k]], col_index[g2[k]]) +=1;
         }
     }
-    double n = accu(m);//所有元素和 
+     //所有元素和
+    double n = accu(m);
     arma::Mat<double> freq = m/n;//频率table
     arma::Col<double> a = sum(freq,1); //行和
     arma::Row<double> b = sum(freq,0); //列和

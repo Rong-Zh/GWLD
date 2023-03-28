@@ -12,12 +12,30 @@ using namespace std;
 using namespace arma;
 
 double RMI(arma::Col<int> &g1, arma::Col<int> &g2) {
-    arma::Col<int> fg = arma::unique(g1); //unique 去重并按升序排
-    arma::Col<int> sg = arma::unique(g2);
-    arma::Col<int> r = fg.elem(find(fg != -1));
-    arma::Col<int> s = sg.elem(find(sg != -1));
-    double R = r.n_elem, S = s.n_elem;
-    arma::Mat<double> m = table(g1, g2, R, S);
+    //unique去重并按升序排
+    arma::Col<int> set_g1 = arma::unique(g1); 
+    arma::Col<int> set_g2 = arma::unique(g2); 
+    //去掉set中NA值
+    arma::Col<int> row_names = set_g1.elem(find(set_g1 != -1));
+    arma::Col<int> col_names = set_g2.elem(find(set_g2 != -1));
+    int len = g1.n_elem;
+    //防止进度丢失
+    double R = row_names.n_elem, S = col_names.n_elem; 
+    std::unordered_map<int, int> row_index;
+    for (int i=0; i<R; i++) {
+        row_index[row_names[i]] = i;
+    }
+    std::unordered_map<int, int> col_index;
+    for (int j=0; j<S; j++) {
+        col_index[col_names[j]] = j;
+    }
+    //使用double防止进度丢失，用0.0来填充
+    arma::Mat<double> m(R, S, fill::zeros);
+    for(int k=0; k<len; k++){
+        if(g1[k]!= -1 && g2[k]!= -1){
+            m(row_index[g1[k]], col_index[g2[k]]) +=1;
+        }
+    }
     double n = arma::accu(m);//所有元素和
     arma::Col<double> a = arma::sum(m,1);
     arma::Row<double> b = arma::sum(m,0); //1是行, 0是列
@@ -37,12 +55,30 @@ double RMI(arma::Col<int> &g1, arma::Col<int> &g2) {
 
 
 double MI(arma::Col<int> &g1, arma::Col<int> &g2) {
-    arma::Col<int> fg = arma::unique(g1); //unique 去重并按升序排
-    arma::Col<int> sg = arma::unique(g2);
-    arma::Col<int> r = fg.elem(find(fg != -1));
-    arma::Col<int> s = sg.elem(find(sg != -1));
-    double R = r.n_elem, S = s.n_elem;
-    arma::Mat<double> m = table(g1, g2, R, S);
+    //unique去重并按升序排
+    arma::Col<int> set_g1 = arma::unique(g1); 
+    arma::Col<int> set_g2 = arma::unique(g2); 
+    //去掉set中NA值
+    arma::Col<int> row_names = set_g1.elem(find(set_g1 != -1));
+    arma::Col<int> col_names = set_g2.elem(find(set_g2 != -1));
+    int len = g1.n_elem;
+    //防止进度丢失
+    double R = row_names.n_elem, S = col_names.n_elem; 
+    std::unordered_map<int, int> row_index;
+    for (int i=0; i<R; i++) {
+        row_index[row_names[i]] = i;
+    }
+    std::unordered_map<int, int> col_index;
+    for (int j=0; j<S; j++) {
+        col_index[col_names[j]] = j;
+    }
+    //使用double防止进度丢失，用0.0来填充
+    arma::Mat<double> m(R, S, fill::zeros);
+    for(int k=0; k<len; k++){
+        if(g1[k]!= -1 && g2[k]!= -1){
+            m(row_index[g1[k]], col_index[g2[k]]) +=1;
+        }
+    }
     double n = arma::accu(m); //所有元素和 
     arma::Mat<double> freq = m/n;//频率table
     arma::Col<double> a = arma::sum(freq,1); //行和
