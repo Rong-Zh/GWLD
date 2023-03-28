@@ -82,7 +82,6 @@ arma::Mat<double> RMIC_Mat(arma::Mat<int> & geno012, int cores=1) {
 
 // [[Rcpp::export]]
 double MIC(arma::Col<int> & g1, arma::Col<int> & g2) {
-    
     if (g1.n_elem != g2.n_elem) {
         throw Rcpp::exception("g1 and g2 have different length");
     }
