@@ -6,6 +6,7 @@
 #' @param track.height Height of the track. It is the percentage to the radius of the unit circles
 #' @param cex.lab a numerical vector giving the amount by which plotting characters and symbols should be scaled relative to the defaul
 #' @param bg.border Color for the border of the plotting regions
+#' @param family the name of a font family for drawing text
 #' @param ... other graphical parameters
 #' 
 #' @import circlize
@@ -14,9 +15,9 @@
 #' @examples NULL
 #' @export
 
-circos.main <- function(data, ylim=c(0,1), cell.padding=c(0.02, 0, 0.02, 0),
-                        track.height=0.1, cex.lab=0.6, bg.border=NA, ...) {
-  ###输入的数据应该有3列,CHROM,POS,ID, 重要的是前两列
+circos.ideogram <- function(data, ylim=c(0,1), cell.padding=c(0.02, 0, 0.02, 0),
+                        track.height=0.1, cex.lab=0.6, bg.border=NA, family=NULL, ...) {
+  ###输入的数据应该有3列,CHROM,POS,ID, 重要的是前两列可以直接拿vcf文件中前5列
   if(!all(grepl("chr", data[,1]))) {
     df <- data.frame()
     i = 1
@@ -31,7 +32,7 @@ circos.main <- function(data, ylim=c(0,1), cell.padding=c(0.02, 0, 0.02, 0),
   } else {
     data <- data
   }
-  #清楚circos参数
+  #清除circos参数
   circos.clear()
   circos.par(cell.padding = cell.padding)
   ##必须使用因子，不然顺序会改变
@@ -46,7 +47,7 @@ circos.main <- function(data, ylim=c(0,1), cell.padding=c(0.02, 0, 0.02, 0),
                  #显示染色体号
                  xlim <- get.cell.meta.data("xlim")
                  circos.text(mean(xlim), 0.6, labels = chr.index, facing= "downward",
-                             cex=cex.lab, niceFacing = TRUE)
+                             cex=cex.lab, niceFacing = TRUE, family=family)
                })
 
 }
