@@ -77,7 +77,7 @@ circos.ideogram <- function(data, ylim=c(0,1), cell.padding=c(0.02, 0, 0.02, 0),
 ###将会构造成7列数据，CHROM_1, POS_1, ID_1 , CHROM_2, POS_2, ID_2, Value,
 ##根据value值的大小设置连线的颜色
 circos.snplink <- function(data, ylim=c(0,1), link.col=NULL,
-                            track.height=0.05, legend = TRUE, legend.pos=c(1, 0.5),
+                            track.height=0.05, legend = TRUE, legend.pos=c(0.9, 0.6),
                             legend.border=NA, legend.font=1, legend.labels.cex = 0.5,
                             bg.border = "black", bg.col=NA, family=NULL,
                             lwd = par("lwd"), lty = par("lty"),...) {
