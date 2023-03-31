@@ -78,7 +78,7 @@ circos.ideogram <- function(data, ylim=c(0,1), cell.padding=c(0.02, 0, 0.02, 0),
 ##根据value值的大小设置连线的颜色
 circos.snplink <- function(data, ylim=c(0,1), link.col=NULL,
                             track.height=0.05, legend = TRUE, legend.pos=c(0.9, 0.6),
-                            legend.border=NA, legend.font=1, legend.labels.cex = 0.5,
+                            legend.border=NA, legend.font=1, legend.labels.cex = 0.75,
                             bg.border = "black", bg.col=NA, family=NULL,
                             lwd = par("lwd"), lty = par("lty"),...) {
 
@@ -158,8 +158,8 @@ circos.legendlink <- function(x=0.8, y=0.5, legend.limits=c(min,max),legend.bin=
        ytop = seq(y+0.025,y+0.025*legend.rect, 0.025),
        col=legend.col, border = legend.border, lty = legend.lwd, lwd = legend.lwd)
   ##图例标签
-  text(x=rep(x+0.085, legend.rect/2+1), y=seq(y, y+0.05*(legend.rect/2), 0.05*legend.bin),
-       adj=c(0.5,0.5), labels = c(seq(legend.min, legend.max, 0.1*legend.bin)),
+  text(x=rep(x+0.065, legend.rect/2+1), y=seq(y, y+0.05*(legend.rect/2), 0.05*legend.bin),
+       adj=c(0.5,0.5), labels = c(seq(legend.min, legend.max, 0.1*legend.bin),adj=(0, 0.5)),
        cex=legend.cex, font = legend.font, family=legend.family)
 }
 
