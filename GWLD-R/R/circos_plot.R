@@ -159,7 +159,7 @@ circos.legendlink <- function(x=0.8, y=0.5, legend.limits=c(min,max),legend.bin=
        col=legend.col, border = legend.border, lty = legend.lwd, lwd = legend.lwd)
   ##图例标签
   text(x=rep(x+0.065, legend.rect/2+1), y=seq(y, y+0.05*(legend.rect/2), 0.05*legend.bin),
-       adj=c(0.5,0.5), labels = c(seq(legend.min, legend.max, 0.1*legend.bin),adj=(0, 0.5)),
+       adj=c(0, 0.5), labels = c(seq(legend.min, legend.max, 0.1*legend.bin)),
        cex=legend.cex, font = legend.font, family=legend.family)
 }
 
