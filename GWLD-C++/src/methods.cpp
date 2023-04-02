@@ -19,7 +19,7 @@ double RMI(arma::Col<int> &g1, arma::Col<int> &g2) {
     arma::Col<int> row_names = set_g1.elem(find(set_g1 != -1));
     arma::Col<int> col_names = set_g2.elem(find(set_g2 != -1));
     int len = g1.n_elem;
-    //防止进度丢失
+    //防止精度丢失
     double R = row_names.n_elem, S = col_names.n_elem; 
     std::unordered_map<int, int> row_index;
     for (int i=0; i<R; i++) {
@@ -83,7 +83,7 @@ double MI(arma::Col<int> &g1, arma::Col<int> &g2) {
     arma::Mat<double> freq = m/n;//频率table
     arma::Col<double> a = arma::sum(freq,1); //行和
     arma::Row<double> b = arma::sum(freq,0); //列和
-    //定义熵的公式,并且定义0*log2(0)=0,单位为比特.
+    //定义熵的公式,并且0*log2(0)=0,单位为比特.
     arma::Col<double> rowh = a.transform([] (double val) {return(val==0.0 ? 0.0 : -val*log2(val));});
     arma::Row<double> colh = b.transform([] (double val) {return(val==0.0 ? 0.0 : -val*log2(val));});
     arma::Mat<double> tabh = freq.transform([] (double val) {return(val==0.0 ? 0.0 : -val*log2(val));});
