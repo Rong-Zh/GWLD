@@ -138,7 +138,7 @@ HeatmapLabels <- function(LDmatrix, pos, name, vp, label.size=label.size, family
       start = ind[1]
       res <- c(start)
       for(i in 2:length(ind)) {
-        if(abs(regionx[ind[i]] - regionx[start]) > min_dist+label.size*0.001) {
+        if(abs(regionx[ind[i]] - regionx[start]) > min_dist+label.size*0.0015) {
           res <- append(res, ind[i])
           start <- ind[i]
         }     
