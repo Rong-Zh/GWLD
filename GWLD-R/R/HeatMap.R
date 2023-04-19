@@ -125,10 +125,11 @@ HeatMap <- function(data, method="r^2", SnpPosition=NULL, SnpName=NULL, cores=1,
 #' @importFrom grid grid.draw
 #' @export
 grid.draw.HeatMap <- function(x, recording = TRUE) {
-   grid.draw(x$LDheatMap)
+    grid.newpage()
+    grid.draw(x$LDheatMap)
 }
 
 #' @export
 print.HeatMap <- function(x, ...) {
-   grid.draw(x)
+    grid.draw(x)
 }
