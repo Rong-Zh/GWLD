@@ -13,6 +13,7 @@ HeatMap(
   color = NULL,
   showLDvalues = FALSE,
   title = "Pairwise LD",
+  label.size = 10,
   family = NULL,
   ...
 )
@@ -33,6 +34,8 @@ HeatMap(
 \item{showLDvalues}{logical}
 
 \item{title}{heatmap's title}
+
+\item{label.size}{label's font size of heatmap}
 
 \item{family}{Font for heatmap}
 

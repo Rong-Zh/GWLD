@@ -9,16 +9,17 @@
 #' @param color heatmap corlor
 #' @param showLDvalues logical
 #' @param title heatmap's title
+#' @param label.size label's font size of heatmap 
 #' @param family Font for heatmap
-#' @param ... NULL
 #' @param cores thread number
+#' @param ... NULL
 #' 
 #' @return HeatMap
 #' @export
 #' @examples NULL
 
 HeatMap <- function(data, method="r^2", SnpPosition=NULL, SnpName=NULL, cores=1,
-                    color=NULL, showLDvalues = FALSE, title="Pairwise LD", family=NULL, ...) {
+                    color=NULL, showLDvalues = FALSE, title="Pairwise LD", label.size=10, family=NULL, ...) {
   
   requireNamespace("grid", quietly = TRUE)
   if (method=="r^2") {
@@ -45,7 +46,6 @@ HeatMap <- function(data, method="r^2", SnpPosition=NULL, SnpName=NULL, cores=1,
     stop("Invalid LD measurement")
   }
   #____________________________创建新的视图框_________________________________#
-  grid::grid.newpage()
   mainvp <- viewport(width = unit(0.8, "snpc"), height = unit(0.8, "snpc"),
                      name="mainvp")
   flipVP <- viewport(width = unit(0.85, "snpc"), height = unit(0.85, "snpc"),
@@ -107,15 +107,16 @@ HeatMap <- function(data, method="r^2", SnpPosition=NULL, SnpName=NULL, cores=1,
                           just="centre", name= "label_title")
   title <- gTree(children=gList(main_title, label_title), name = "title")
   #___________________________绘图中SNP的标签设置______________________________#
-  label <- HeatmapLabels(LDmatrix, SnpPosition, SnpName, vp=flipVP, family=family)
+  label <- HeatmapLabels(LDmatrix, SnpPosition, SnpName, vp=flipVP, label.size=label.size, family=family)
   #________________________________设置图例____________________________________#
   legend <- HeatmapLegend(col_key, method, family=family)
   
   LDheatmap <- gTree(children=gList(heatMap, legend, label, title),
                      vp=mainvp, name= "LDheatmap")
   
+  grid::grid.newpage()
   grid.draw(LDheatmap)
-  
+
   invisible(structure(list(LDmatrix=LDmatrix, LDheatMap=LDheatmap,
                            SnpName=SnpName, SnpPosition=SnpPosition,
                            Color=color), class = "HeatMap"))

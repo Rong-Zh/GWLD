@@ -18,4 +18,4 @@ Imports: Rcpp,
     data.table,
     ragg,
 LinkingTo: Rcpp, RcppArmadillo
-RoxygenNote: 7.2.2
+RoxygenNote: 7.2.3
