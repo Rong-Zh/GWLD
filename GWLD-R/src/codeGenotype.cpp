@@ -10,7 +10,6 @@ using namespace std;
 using namespace Rcpp;
 using namespace arma;
 
-
 bool cmp(pair<std::string, double> a, pair<string, double> b) {
      //从大到小排列
     return a.second > b.second;
