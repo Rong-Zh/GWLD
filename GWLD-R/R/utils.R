@@ -10,7 +10,6 @@ MakeImageRect <- function(nrow, ncol, cols, name, byrow=TRUE, rectlwd=NULL, rect
       right <- rep(xx, each=nrow)
       top <- rep(yy, ncol)
   }
-
   if (is.null(rectcol)) {
       rectcol = NA ###设置矩形框的颜色为NA
   }
@@ -24,73 +23,50 @@ MakeImageRect <- function(nrow, ncol, cols, name, byrow=TRUE, rectlwd=NULL, rect
 MakeImageText <- function(nrow, ncol, cols, name, flip = FALSE, family=family) {
   cols <- as.character(cols)
   cols[is.na(cols)] <- ""
-  cols <- paste("   ", cols)
   xx <- (1:ncol)/ncol
   yy <- (1:nrow)/nrow
 
   # 需要以不同的顺序填充单元格，就像生成图像一样
   if(flip) {
-
       right <- rep(xx, each = nrow)
       top <- rep(yy, ncol)
   } else {
       right <- rep(xx, nrow)
       top <- rep(yy, each=ncol)
   }
-
-  textGrob(cols, x=right-0.035, y=top-0.015, rot= 45,
-           gp=gpar(cex=0.45, fontfamliy=family),
-           just=c("right", "top"),
+  textGrob(cols, x=right-0.5/nrow, y=top-0.5/ncol, rot= 45,
+           gp=gpar(cex=0.45, fontfamily=family),
            name=name)
 }
 
-##legend 需要修改
-HeatmapLegend <- function(color, LDmeasure, family=family) {
-  # 设置字体
-  legend_ImageRect <- MakeImageRect(2, length(color), cols=c(rep(NA,length(color)), color[1:length(color)]),
-                                    "legend_colorkey")
-  legendvp <- viewport(x=1.1, y=-0.10, height=0.10, width=0.5, just=c("right","bottom"), name="legend")
-  #添加标签 'Color key'
-  if(LDmeasure=="r^2") {
-    ttt <- expression(paste(r^2," Color Key"))
-    #在颜色调上添加标签
-    legend_labels <- textGrob(paste(0.2*0:5), x=0.2*0:5, y=0.25, gp=gpar(cex=0.6, fontfamliy=family), name="legend_labels")
-    #在颜色调底部轴上绘制刻度
-    legend_ticks <- segmentsGrob(x0=c(0:5)*0.2, y0=rep(0.4,6), x1=c(0:5)*0.2 , y1=rep(0.5,6),name="legend_ticks")
-  } else if(LDmeasure=="D'") {
-    ttt <- "D' Color Key"
-    #在颜色调上添加标签
-    legend_labels <- textGrob(paste(0.2*0:5), x=0.2*0:5, y=0.25, gp=gpar(cex=0.6, fontfamliy=family), name="legend_labels")
-    #在颜色调底部轴上绘制刻度
-    legend_ticks <- segmentsGrob(x0=c(0:5)*0.2, y0=rep(0.4,6), x1=c(0:5)*0.2, y1=rep(0.5,6), name="legend_ticks")
-  } else if(LDmeasure=="D") {
-    ttt <- "D Color Key"
-    #在颜色调上添加标签
-    legend_labels <- textGrob(paste(seq(-1,1,0.5)), x=0.25*0:4, y=0.25, gp=gpar(cex=0.6, fontfamliy=family), name="legend_labels")
-    #在颜色调底部轴上绘制刻度
-    legend_ticks <- segmentsGrob(x0=c(0:4)*0.25, y0=rep(0.4,6), x1=c(0:4)*0.25, y1=rep(0.5,6), name="legend_ticks")
-  } else if(LDmeasure=="RMI") {
-    ttt <- "RMI Color Key"
-    #在颜色调上添加标签
-    legend_labels <- textGrob(paste(c(-0.1, 0.24, 0.58, 0.92, 1.26, 1.6)), x=0.2*0:5, y=0.25, gp=gpar(cex=0.6, fontfamliy=family), name="legend_labels")
-    #在颜色调底部轴上绘制刻度
-    legend_ticks <- segmentsGrob(x0=c(0:5)*0.2, y0=rep(0.4,6), x1=c(0:5)*0.2 , y1=rep(0.5,6),name="legend_ticks")
-  } else if(LDmeasure=="MI") {
-    ttt <- "MI Color Key"
-    #在颜色调上添加标签
-    legend_labels <- textGrob(paste(0.32*0:5), x=0.2*0:5, y=0.25, gp=gpar(cex=0.6, fontfamliy=family), name="legend_labels")
-    #在颜色调底部轴上绘制刻度
-    legend_ticks <- segmentsGrob(x0=c(0:5)*0.2, y0=rep(0.4,6), x1=c(0:5)*0.2, y1=rep(0.5,6), name="legend_ticks")
-  }
-  legend_title <- textGrob(ttt, x=0.5, y=1.25, name="legend_title", gp=gpar(cex=0.8, fontfamliy=family))
-  #在颜色条周围加一个框
-  legend_box <- linesGrob(x=c(0,0,1,1,0), y=c(0.5,1,1,0.5,0.5), name="legend_box")
-  legend <- gTree(children=gList(legend_ImageRect, legend_title, legend_labels, legend_ticks, legend_box), name="legend", vp=legendvp)
+HeatmapLegend <- function(x, y, legend.colors, legend.title, breaks, n.breaks, 
+                          labels, legend.family) {
+  #归一化到0,1
+  labels_pos <- seq(0, 1, length.out=n.breaks)
+  legend_breaks <- seq(breaks[1], breaks[2], length.out=n.breaks+1)
+  pos <- labels_pos[cut(labels, legend_breaks, labels=FALSE, right=TRUE, include.lowest=T)]
+  right  <- rep((1:n.breaks)/n.breaks, each=1)
+  top<- rep(1, n.breaks)
+  legend_title <- textGrob(legend.title, x=0.5, y=1.3, name="legend_title", just = "bottom", 
+                           gp=gpar(cex=0.85, fontfamily=legend.family))
+  legend_rect <- rectGrob(x=right, y=top, width=1/n.breaks, height=1,
+                          just=c("right", "top"), name="legend_rect", gp = gpar(fill=legend.colors, col=NA))
+  legend_box <- linesGrob(x=c(0,1,1,0,0), y=c(0,0,1,1,0), name = "legend_box", gp=gpar(col="black", lwd=0.4))
+  legend_ticks <- segmentsGrob(x0=pos, 
+                               y0=rep(0,length(pos)), 
+                               x1=pos, 
+                               y1=rep(-0.15,length(pos)),
+                               gp=gpar(col="black", lwd=0.7),
+                               name = "legend_ticks")
+  legend_text <- textGrob(labels, x=pos, y=rep(-0.2, length(pos)), just = "top",
+                          gp=gpar(cex=0.75, fontfamily=legend.family),
+                          name="legend_text")
+  legend_vp <- viewport(x=x, y=y, width=0.35, height=0.035, name = "legend_vp")
+  legend <- gTree(children = gList(legend_title, legend_rect, legend_ticks, legend_box, legend_text), vp=legend_vp, name="legend")
   legend
 }
 
 HeatmapLabels <- function(LDmatrix, pos, name, vp, label.size=label.size, family=family) {
-  
   nsnps <- ncol(LDmatrix)
   step <- 1/(nsnps-1)
   snp <- ((1:nsnps-1) + 0.5) / nsnps
@@ -101,7 +77,7 @@ HeatmapLabels <- function(LDmatrix, pos, name, vp, label.size=label.size, family
              1-0.5*geneMapLocation - 1/(nsnps*2)) 
   ##设置距离
   if(is.null(pos)) {
-    pos <- 1:nsnps ##有数值
+    pos <- 1:nsnps ##为数值
     total.dist <- max(pos)-min(pos)
     min.dist <- min(pos)
     regionx <- seq.x[1] + ((pos-min.dist)/total.dist)*(seq.x[2]-seq.x[1])
@@ -126,27 +102,28 @@ HeatmapLabels <- function(LDmatrix, pos, name, vp, label.size=label.size, family
                               name="symbols_pch", vp=vp)
     SNPnames <- NULL
   } else if(!is.null(name)) {
-    name_gap <- convertWidth(grobWidth(textGrob("R")), "npc", valueOnly=TRUE)/sqrt(2)##宽度转换
-    ind <- match(name, row.names(LDmatrix), nomatch=0)##整数
+    ##宽度转换
+    name_gap <- convertWidth(grobWidth(textGrob("r")), "npc", valueOnly=TRUE)/sqrt(2)
+    ind <- match(name, row.names(LDmatrix), nomatch=0)
     #点的位置和符号
     symbols_pch <- pointsGrob(snp[ind], snp[ind], pch="*",
                               gp=gpar(cex=-0.01*nsnps+1.6, bg="blue", col="blue"),
                               name="symbols_pch", vp=vp)
     #距离检测,避免SNP字体重叠并更新ind, 让重叠的名字不显示
-    min_dist <- convertHeight(grobHeight(textGrob("rs", gp=gpar(fontsize=label.size))), "npc", valueOnly=TRUE)/2
+    min_dist <- convertHeight(grobHeight(textGrob("rs", gp=gpar(fontsize=label.size))), "npc", valueOnly=TRUE)
     if(length(ind)>=2) {
-      start = ind[1]
+      start <- ind[1]
       res <- c(start)
       for(i in 2:length(ind)) {
-        if(abs(regionx[ind[i]] - regionx[start]) > min_dist+label.size*0.0015) {
+        if(abs(regionx[ind[i]] - regionx[start]) > min_dist) {
           res <- append(res, ind[i])
           start <- ind[i]
         }     
       }
       ind <- res
     }
-    ## names 字体大小还有问题
-    SNPnames <- textGrob(name[ind], just="left", rot=90,
+    ## 如果绘图窗口太小,字体会出界
+    SNPnames <- textGrob(name[ind], just=c("left", "bottom"), rot=90,
                          regionx[ind]-sqrt(2+0.5)*name_gap,
                          regiony[ind]+sqrt(2+0.5)*name_gap,
                          gp=gpar(fontsize=label.size, col="blue", fontfamily=family),

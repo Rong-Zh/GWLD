@@ -5,17 +5,15 @@
 \title{circos legend}
 \usage{
 circos.legendlink(
-  x = 0.8,
-  y = 0.5,
+  x = x,
+  y = y,
   legend.limits = c(min, max),
-  legend.bin = 1,
+  legend.n.breaks = legend.n.breaks,
+  legend.breaks = legend.breaks,
+  legend.labels = legend.labels,
   legend.col = legend.col,
-  legend.cex = 0.5,
-  legend.border = NA,
-  legend.family = NULL,
-  legend.lty = par("lty"),
-  legend.lwd = par("lwd"),
-  legend.font = 1,
+  legend.fontsize = legend.fontsize,
+  legend.family = legend.family,
   ...
 )
 }
@@ -24,23 +22,19 @@ circos.legendlink(
 
 \item{y}{numeric}
 
-\item{legend.limits}{legend's limits;c(min, max)}
+\item{legend.limits}{A numeric vector of length two providing limits of the scale}
 
-\item{legend.bin}{int; legend's bin}
+\item{legend.n.breaks}{An integer guiding the number of major breaks.}
+
+\item{legend.breaks}{A numeric vector of positions}
+
+\item{legend.labels}{A vector giving labels (must be same length as legend.breaks)}
 
 \item{legend.col}{A specification for the default plotting color}
 
-\item{legend.cex}{A numerical value giving the amount by which plotting text and symbols should be magnified relative to the default.}
+\item{legend.fontsize}{numeric; the font size of legend}
 
-\item{legend.border}{Color for the border of the legend}
-
-\item{legend.family}{The name of a font family for drawing text}
-
-\item{legend.lty}{line width for borders and shading}
-
-\item{legend.lwd}{line width for borders and shading}
-
-\item{legend.font}{An integer which specifies which font to use for text}
+\item{legend.family}{The font family of legend}
 
 \item{...}{other graphical parameters}
 }

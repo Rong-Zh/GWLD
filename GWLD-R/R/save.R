@@ -1,4 +1,4 @@
-#' save the plots with triangle heatmap
+#' save the plots
 #'
 #' @param filename output filename of plot.
 #' @param plots Plot to save.
@@ -16,7 +16,7 @@
 #' @export
 #'
 
-GWLD.save <- function(filename, plots, width=NULL, height=NULL, dpi=300,
+savefig<- function(filename, plots, width=NULL, height=NULL, dpi=300,
                     units=NULL, device=NULL, scale=1, ...) {
 
   ##设置单位("in", "cm", "mm", "px"),英寸,厘米,毫米,像素
@@ -25,13 +25,12 @@ GWLD.save <- function(filename, plots, width=NULL, height=NULL, dpi=300,
   } else {
     units <- units
   }
-
-  old.dev <- grDevices::dev.cur() ##旧的绘图设备
+  ##旧的绘图设备
+  old.dev <- grDevices::dev.cur() 
   dev <- plotdev(device, filename, dpi = dpi, units)
-
   ##设置绘图大小
   if (is.null(width) | is.null(height)) {
-    dim <- c(8, 7)
+    dim <- c(6, 5)
   } else {
     dim <- c(width, height)
   }
@@ -41,25 +40,15 @@ GWLD.save <- function(filename, plots, width=NULL, height=NULL, dpi=300,
     if (old.dev > 1) grDevices::dev.set(old.dev) # 保留之前的绘图窗口
   }))
   grid.draw(plots)
-
 }
 
 ##绘图设备
-#' @importFrom ragg agg_png agg_jpeg agg_tiff
 plotdev <- function(device, filename = NULL, dpi = 300, units) {
   force(filename)
   force(dpi)
-
-  if (requireNamespace('ragg', quietly = TRUE)) {
-    pngdev <- ragg::agg_png
-    jpegdev <- ragg::agg_jpeg
-    tiffdev <- ragg::agg_tiff
-  } else {
-    pngdev <- grDevices::png
-    jpegdev <- grDevices::jpeg
-    tiffdev <- grDevices::tiff
-  }
-
+  pngdev <- grDevices::png
+  jpegdev <- grDevices::jpeg
+  tiffdev <- grDevices::tiff
   ##绘图设备列表
   devices <- list(
     pdf =  function(filename, ..., version = "1.4") grDevices::pdf(file = filename, ..., version = version),
@@ -68,12 +57,10 @@ plotdev <- function(device, filename = NULL, dpi = 300, units) {
     jpeg = function(...) jpegdev(..., res = dpi, units = units),
     tiff = function(...) tiffdev(..., res = dpi, units = units)
   )
-
   if (is.null(device)) {
     ##使用的绘图设备
     device <- tools::file_ext(filename)
   }
-
   dev <- devices[[device]]
   if (is.null(dev)) {
     stop("Unknown graphics device")

@@ -1,9 +1,9 @@
-// [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::plugins(openmp)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
 #include <float.h>
 #include <omp.h>
+#include <map>
 #include <vector>
 #include <string>
 
@@ -12,7 +12,6 @@ using namespace arma;
 
 // [[Rcpp::export]]
 double RMIC(arma::Col<int> & g1, arma::Col<int> & g2) {
-    
     if (g1.n_elem != g2.n_elem) {
         throw Rcpp::exception("g1 and g2 have different length");
     }
@@ -109,12 +108,18 @@ double MIC(arma::Col<int> & g1, arma::Col<int> & g2) {
             m(row_index[g1[k]], col_index[g2[k]]) +=1;
         }
     }
-     //所有元素和
-    double n = accu(m);
+    //下面这种方式频繁的调用find函数
+    // arma::Mat<double> m(R, S, fill::zeros);//用0来填充
+    // for(int i=0; i<len; i++){
+    //     if(g1[i]!= NA_INTEGER && g2[i]!= NA_INTEGER){
+    //         m(find(r == g1[i]), find(s == g2[i])) +=1;
+    //     }
+    // }
+    double n = accu(m);//所有元素和 
     arma::Mat<double> freq = m/n;//频率table
     arma::Col<double> a = sum(freq,1); //行和
     arma::Row<double> b = sum(freq,0); //列和
-    //定义熵的公式,并且定义0*log2(0)=0,单位为比特.
+    //定义熵的公式,定义0*log2(0)=0,单位为比特.
     arma::Col<double> rowh = a.transform([] (double val) {return(val==0.0 ? 0.0 : -val*log2(val));});
     arma::Row<double> colh = b.transform([] (double val) {return(val==0.0 ? 0.0 : -val*log2(val));});
     arma::Mat<double> tabh = freq.transform([] (double val) {return(val==0.0 ? 0.0 : -val*log2(val));});
@@ -122,7 +127,7 @@ double MIC(arma::Col<int> & g1, arma::Col<int> & g2) {
     double H_fg = accu(rowh);
     //计算位点g2的信息熵
     double H_sg = accu(colh);
-    //#计算联合熵
+    //计算联合熵
     double H_fg_sg = accu(tabh);
     //计算互信息
     double I = H_fg + H_sg - H_fg_sg;
@@ -271,6 +276,9 @@ double fmin(double ax, double bx, double tol, double &pA, double &pB, arma::Mat<
 
 // [[Rcpp::export]]
 double LDC(arma::Col<int> &g1, arma::Col<int> &g2, std::string method="r^2") {
+    if (g1.n_elem != g2.n_elem) {
+        throw Rcpp::exception("g1 and g2 have different length");
+    }
     //统计第一位点频率
     double pA, pa, pB, pb;
     pA =  major_allele_freq(g1);
@@ -323,7 +331,7 @@ arma::Mat<double> LDC_Mat(arma::Mat<int> & geno012, std::string method, int core
         }
         return m;
     } else {
-      throw Rcpp::exception("Unknown method! Input one of methods(D, D', r^2,) ");
+      throw Rcpp::exception("Unknown method! Input one of methods(D, D', r^2) ");
     }
 }
 

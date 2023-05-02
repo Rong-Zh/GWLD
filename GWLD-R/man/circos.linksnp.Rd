@@ -7,45 +7,51 @@
 circos.linksnp(
   data,
   ylim = c(0, 1),
-  link.col = NULL,
+  color.theme = "viridis",
   track.height = 0.05,
-  legend = TRUE,
-  legend.pos = c(0.9, 0.6),
-  legend.border = NA,
-  legend.font = 1,
-  legend.labels.cex = 0.75,
-  bg.border = "black",
-  bg.col = NA,
+  legend.show = TRUE,
+  legend.position = c(0.88, 0.75),
+  legend.fontsize = 12,
+  legend.limits = NULL,
+  legend.breaks = NULL,
+  legend.labels = NULL,
+  legend.n.breaks = NULL,
   family = NULL,
+  bg.border = "black",
+  bg.col = NULL,
   lwd = par("lwd"),
   lty = par("lty"),
   ...
 )
 }
 \arguments{
-\item{data}{data.frame}
+\item{data}{A data frame with 7 columns;Chr_1, Pos_1, ID_1, Chr_2, Pos_2, ID_2 value}
 
 \item{ylim}{Range of data on y-axis}
 
-\item{link.col}{link lines' color}
+\item{color.theme}{The color theme in the legend}
 
 \item{track.height}{Height of the track}
 
-\item{legend}{logical whether to show the legend}
+\item{legend.show}{logical whether to show the legend}
 
-\item{legend.pos}{legend position}
+\item{legend.position}{legend position}
 
-\item{legend.border}{Color for the border of the legend}
+\item{legend.fontsize}{the font size of legend}
 
-\item{legend.font}{font for the legend labels}
+\item{legend.limits}{A numeric vector of length two providing limits of the scale}
 
-\item{legend.labels.cex}{Color for the border of the plotting regions}
+\item{legend.breaks}{A numeric vector of positions}
+
+\item{legend.labels}{A vector giving labels (must be same length as legend.breaks)}
+
+\item{legend.n.breaks}{An integer guiding the number of major breaks}
+
+\item{family}{The font family of legend}
 
 \item{bg.border}{Color for the border of the plotting regions}
 
 \item{bg.col}{Background color for the plotting regions}
-
-\item{family}{font of legend label}
 
 \item{lwd}{The line width}
 

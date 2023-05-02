@@ -1,4 +1,3 @@
-// [[Rcpp::plugins(cpp11)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 
 #include <RcppArmadillo.h>
@@ -65,7 +64,7 @@ arma::Mat<int> read_bed(std::string bedfile, int nSample) {
     char* tmp2 = new char[np * 4];
     arma::Mat<int> geno012(nSample, nSnps);
     arma::Col<int> tmp3(nSample);
-    //用3来表示缺失,二进制为11
+    // 用3来表示缺失,二进制为11
     for(int j = 0 ; j < nSnps ; j++) {
             // 读取二进制的基因型
             infile.read((char*)tmp, sizeof(char) * np);
@@ -85,15 +84,14 @@ std::vector<std::vector<std::string>> read_table(std::string filename, std::stri
 
     ifstream infile;
     infile.open(filename, ios::in);
-    if (!infile.is_open())
-	{
-    throw Rcpp::exception("*.vcf file loading fail");
+    if (!infile.is_open()) {
+        throw Rcpp::exception("*.vcf file loading fail");
 	}
     std::string lineStr;
     std::vector<std::vector<std::string>> strArray;
     while (getline(infile, lineStr))
-	{
-        if(lineStr.find("##")!=std::string::npos) //跳过注释的行
+	{   // 跳过注释的行
+        if(lineStr.find("##")!=std::string::npos) 
             continue;
         stringstream ss(lineStr);
         std::string str;
@@ -168,19 +166,23 @@ Rcpp::CharacterMatrix read_vcf(std::string filename, std::string genotype) {
     std::vector<std::vector<std::string>> cMat = read_table(filename, genotype);
     Rcpp::CharacterVector ColName(cMat[0].begin(), cMat[0].end());
     if (cMat[0][0].find('#')!=std::string::npos) {
-        ColName[0] = cMat[0][0].replace(cMat[0][0].find('#'), 1, "");//把#去掉
+        //去掉首行行名中的#注释
+        ColName[0] = cMat[0][0].replace(cMat[0][0].find('#'), 1, "");
     }
     int nrows = cMat.size(), ncols=cMat.front().size();
-    Rcpp::CharacterMatrix rMat(nrows-1, ncols);//把c++矩阵转换为R语言矩阵
+    Rcpp::CharacterMatrix rMat(nrows-1, ncols);
+    //把c++矩阵转换为R语言矩阵
     for(int row=1; row<nrows; row++ ){
         for(int col=0; col<ncols; col++) {
             if (cMat[row][col]=="NA") {
-                rMat(row-1, col) = NA_STRING; //把字符NA 替换成R语言NA缺失值
+                //把字符NA替换成R语言NA缺失值
+                rMat(row-1, col) = NA_STRING; 
             } else {
                 rMat(row-1, col) = cMat[row][col];
             }
         }
-    }   
-    colnames(rMat) = ColName;//设置列名
+    }
+    //设置列名  
+    colnames(rMat) = ColName;
     return rMat;
 }

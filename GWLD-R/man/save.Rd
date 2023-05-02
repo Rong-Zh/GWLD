@@ -2,10 +2,10 @@
 % Please edit documentation in R/save.R
 \name{save}
 \alias{save}
-\alias{GWLD.save}
-\title{save the plots with triangle heatmap}
+\alias{savefig}
+\title{save the plots}
 \usage{
-GWLD.save(
+savefig(
   filename,
   plots,
   width = NULL,
@@ -39,5 +39,5 @@ GWLD.save(
 as specified by \code{device}.}
 }
 \description{
-save the plots with triangle heatmap
+save the plots
 }

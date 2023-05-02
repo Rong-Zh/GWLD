@@ -12,7 +12,8 @@ using namespace arma;
 
 
 bool cmp(pair<std::string, double> a, pair<string, double> b) {
-    return a.second > b.second; //从大到小排列
+     //从大到小排列
+    return a.second > b.second;
 }
 
 std::vector<pair<std::string, double>> split_str(CharacterVector &v, string sep) {
