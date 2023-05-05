@@ -72,7 +72,7 @@ HeatMap <- function(data, method="r^2", SnpPosition=NULL, SnpName=NULL, cores=1,
   #______________________________创建方形框____________________________________#
   rectcol <- ifelse(nrow(LDmatrix) <= 60, "white", NULL)
   ImageRect <- MakeImageRect(dim(LDmatrix)[1], dim(LDmatrix)[2], colcut,
-                             name="heatmapRect", byrow=FALSE, rectlwd=1,
+                             name="heatmapRect", byrow=FALSE, rectlwd=0.5,
                              rectcol=rectcol)
   #___________________________设置绘图中的字体_________________________________#
   family <- ifelse(is.null(family), "serif", family)

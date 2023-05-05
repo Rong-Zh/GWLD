@@ -61,7 +61,7 @@ HeatmapLegend <- function(x, y, legend.colors, legend.title, breaks, n.breaks,
   legend_text <- textGrob(labels, x=pos, y=rep(-0.2, length(pos)), just = "top",
                           gp=gpar(cex=0.75, fontfamily=legend.family),
                           name="legend_text")
-  legend_vp <- viewport(x=x, y=y, width=0.35, height=0.035, name = "legend_vp")
+  legend_vp <- viewport(x=x, y=y, width=0.4, height=0.035, name = "legend_vp")
   legend <- gTree(children = gList(legend_title, legend_rect, legend_ticks, legend_box, legend_text), vp=legend_vp, name="legend")
   legend
 }
@@ -98,7 +98,7 @@ HeatmapLabels <- function(LDmatrix, pos, name, vp, label.size=label.size, family
   if (!is.null(segments) & is.null(name)) {
     ###点的位置和符号,符号大小得微调
     symbols_pch <- pointsGrob(snp[1:nsnps], snp[1:nsnps], pch="*",
-                              gp=gpar(cex=-0.01*nsnps+1.6, bg="blue", col="blue"),
+                              gp=gpar(cex=-0.02*nsnps+2, bg="blue", col="blue"),
                               name="symbols_pch", vp=vp)
     SNPnames <- NULL
   } else if(!is.null(name)) {
@@ -107,15 +107,15 @@ HeatmapLabels <- function(LDmatrix, pos, name, vp, label.size=label.size, family
     ind <- match(name, row.names(LDmatrix), nomatch=0)
     #点的位置和符号
     symbols_pch <- pointsGrob(snp[ind], snp[ind], pch="*",
-                              gp=gpar(cex=-0.01*nsnps+1.6, bg="blue", col="blue"),
+                              gp=gpar(cex=-0.02*nsnps+2, bg="blue", col="blue"),
                               name="symbols_pch", vp=vp)
-    #距离检测,避免SNP字体重叠并更新ind, 让重叠的名字不显示
-    min_dist <- convertHeight(grobHeight(textGrob("rs", gp=gpar(fontsize=label.size))), "npc", valueOnly=TRUE)
+    #距离检测(避免SNP字体重叠并更新ind, 让重叠的名字不显示)
+    min_dist <- convertHeight(grobHeight(textGrob("rs", gp=gpar(fontsize=label.size))), "npc", valueOnly=TRUE)*1.1
     if(length(ind)>=2) {
       start <- ind[1]
       res <- c(start)
       for(i in 2:length(ind)) {
-        if(abs(regionx[ind[i]] - regionx[start]) > min_dist) {
+        if(abs(regionx[ind[i]] - regionx[start]) >= min_dist) {
           res <- append(res, ind[i])
           start <- ind[i]
         }     
