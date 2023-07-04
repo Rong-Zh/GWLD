@@ -10,8 +10,8 @@ project (GWLD)
 set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -g")
 
 include_directories(include)
-set(SRCS src/main.cpp src/methods.cpp src/filedeal.cpp src/utils.cpp)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_SOURCE_DIR}/bin/")
+aux_source_directory(src SRCS)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 find_package(Armadillo REQUIRED)
 find_package(OpenMP REQUIRED)

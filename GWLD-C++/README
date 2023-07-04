@@ -4,7 +4,7 @@
 2. cmake >= 3.9 https://cmake.org/download/
 
 3. how to install
-  $ mkdir bulid && cd build
+  $ mkdir build && cd build
   $ cmake ..
   $ make
   $ ../bin/GWLD

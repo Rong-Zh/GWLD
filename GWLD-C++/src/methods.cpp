@@ -2,6 +2,7 @@
 #include <fstream>
 #include <sstream>
 #include <armadillo>
+#include <unordered_map>
 #include <vector>
 #include <string>
 #include <float.h>
