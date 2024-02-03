@@ -85,6 +85,11 @@ arma::Mat<int> read_bed(std::string bedfile, int nSample)
     return geno012;
 }
 
+bool startswith(const std::string &str, const std::string prefix)
+{
+  return (str.rfind(prefix, 0) == 0);
+}
+
 std::vector<std::vector<std::string>> read_table(std::string filename, std::string genotype)
 {
 
@@ -97,8 +102,8 @@ std::vector<std::vector<std::string>> read_table(std::string filename, std::stri
     std::string lineStr;
     std::vector<std::vector<std::string>> strArray;
     while (getline(infile, lineStr))
-    { // 跳过注释的行
-        if (lineStr.find("##") != std::string::npos)
+    {   // 跳过注释的行
+        if (startswith(lineStr, "##"))
             continue;
         stringstream ss(lineStr);
         std::string str;
@@ -212,12 +217,12 @@ std::vector<std::vector<std::string>> read_table(std::string filename, std::stri
 // [[Rcpp::export]]
 Rcpp::CharacterMatrix read_vcf(std::string filename, std::string genotype)
 {
-    std::vector<std::vector<std::string>> cMat = read_table(filename, genotype);
-    Rcpp::CharacterVector ColName(cMat[0].begin(), cMat[0].end());
-    if (cMat[0][0].find('#') != std::string::npos)
+    std::vector<std::vector<std::string>> cMat = std::move(read_table(filename, genotype));
+    Rcpp::CharacterVector ColName(cMat.front().begin(), cMat.front().end());
+    if (startswith(cMat.front()[0], "#"))
     {
         // 去掉首行行名中的#注释
-        ColName[0] = cMat[0][0].replace(cMat[0][0].find('#'), 1, "");
+        ColName[0] = cMat.front()[0].substr(1);
     }
     int nrows = cMat.size(), ncols = cMat.front().size();
     Rcpp::CharacterMatrix rMat(nrows - 1, ncols);
