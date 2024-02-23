@@ -14,6 +14,7 @@ SNP <- dta$genotype
 Info <- dta$info
 geno012 <- codegeno(dta$genotype, sep = "/")
 
+
 ## VCF format
 # Approach 1
 SNP <- read.vcf(filename = "example-3.vcf", genotype = "int")
@@ -50,6 +51,7 @@ SNP <- bed2matrix("example")
 Info <- SNP$Info
 geno012 <- SNP$Genotype
 
+
 # Using the plink data above as an example
 # Calculating values with different methods.
 r2 <- LD(geno012, cores = 1)
@@ -61,7 +63,54 @@ value <- GWLD(geno012, method = "RMI", cores = 1)
 r2 <- LD(geno012[, 1], geno012[, 2], method = "r^2", cores = 1)
 value <- GWLD(geno012[, 1], geno012[, 2], method = "RMI", cores = 1)
 
+# Calculate the decay from result
+RMI <- RMI(geno012, cores = 1)
+rmi_decay <- decay(RMI, Info)
+
+# or calculate circos result from data
+rmi_decay <- calc_decay(geno012, Info, method = "RMI")
+
+
+# Calculate the decay from result
+RMI <- RMI(geno012, cores = 1)
+rmi_circos <- circos(RMI, Info, threshold = 0.1)
+
 # Calculate the distance between different chromosomes
 rmi_circos <- calc_circos(geno012, Info, method = "RMI", threshold = 0.1, cores = 1)
+
+
+# plot Ciros
+circosdata <- duck$Circos
+circos.ideogram(circosdata$chr)
+circos.linksnp(circosdata$linkdata)
+
+# plot using the example data,
+# It is possible to construct all or partial chromosome length data
+chr_info <- Info |>
+  data.frame() |>
+  dplyr::mutate_at(c("CHROM", "POS"), .funs = as.numeric)
+
+rmi_res <- rmi_circos |>
+  data.frame() |>
+  dplyr::mutate_at(c("CHR_1", "POS_1", "CHR_2", "POS_2", "Value"), .funs = as.numeric)
+
+# show all chromosomes of the duck data
+circos.ideogram(circosdata$chr)
+circos.linksnp(rmi_res)
+
+# show partial chromosomes of the duck data
+circos.ideogram(chr_info)
+circos.linksnp(rmi_res)
+
+# construct chromosomes data
+data <- data.frame(
+  chr = c(1, 2, 3, 4, 5),
+  start = c(0, 0, 0, 0, 0),
+  end = c(164695780, 124299693, 49759293, 10956466, 60265033)
+)
+
+row.names(data) <- paste0("chr", data[,1]) 
+circos.ideogram(data)
+circos.linksnp(rmi_res)
 
 # For more details, see https://doi.org/10.1093/g3journal/jkad154 Box 1
