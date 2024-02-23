@@ -102,15 +102,20 @@ circos.linksnp(rmi_res)
 circos.ideogram(chr_info)
 circos.linksnp(rmi_res)
 
-# construct chromosomes data
-data <- data.frame(
-  chr = c(1, 2, 3, 4, 5),
-  start = c(0, 0, 0, 0, 0),
-  end = c(164695780, 124299693, 49759293, 10956466, 60265033)
+# Construct chromosome length information
+chr_info <- structure(
+  list(
+    chr = c(1, 2, 3, 4, 5, 15),
+    start = c(0, 0, 0, 0, 0, 0),
+    end = c(164695780, 124299693, 49759293, 10956466, 60265033, 7563935)
+  ),
+  class = c("list", "custom")
 )
 
-row.names(data) <- paste0("chr", data[,1]) 
-circos.ideogram(data)
+circos.ideogram(chr_info)
 circos.linksnp(rmi_res)
 
 # For more details, see https://doi.org/10.1093/g3journal/jkad154 Box 1
+
+
+
