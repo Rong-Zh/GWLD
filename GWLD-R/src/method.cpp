@@ -1,3 +1,4 @@
+#define ARMA_64BIT_WORD 1
 // [[Rcpp::plugins(openmp)]]
 // [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
@@ -102,7 +103,7 @@ double MIC(arma::Col<int> &g1, arma::Col<int> &g2)
     arma::Col<int> row_names = set_g1.elem(find(set_g1 != NA_INTEGER));
     arma::Col<int> col_names = set_g2.elem(find(set_g2 != NA_INTEGER));
     int len = g1.n_elem;
-    // 防止进度丢失
+    // 防止精度丢失
     double R = row_names.n_elem, S = col_names.n_elem;
     std::unordered_map<int, int> row_index;
     for (int i = 0; i < R; i++)
@@ -114,7 +115,7 @@ double MIC(arma::Col<int> &g1, arma::Col<int> &g2)
     {
         col_index[col_names[j]] = j;
     }
-    // 使用double防止进度丢失，用0.0来填充
+    // 使用double精度进度丢失，用0.0来填充
     arma::Mat<double> m(R, S, fill::zeros);
     for (int k = 0; k < len; k++)
     {

@@ -1,3 +1,4 @@
+#define ARMA_64BIT_WORD 1
 // [[Rcpp::depends(RcppArmadillo)]]
 
 #include <RcppArmadillo.h>
@@ -87,7 +88,7 @@ arma::Mat<int> read_bed(std::string bedfile, int nSample)
 
 bool startswith(const std::string &str, const std::string prefix)
 {
-  return (str.rfind(prefix, 0) == 0);
+    return (str.rfind(prefix, 0) == 0);
 }
 
 std::vector<std::vector<std::string>> read_table(std::string filename, std::string genotype)
@@ -102,7 +103,7 @@ std::vector<std::vector<std::string>> read_table(std::string filename, std::stri
     std::string lineStr;
     std::vector<std::vector<std::string>> strArray;
     while (getline(infile, lineStr))
-    {   // 跳过注释的行
+    { // 跳过注释的行
         if (startswith(lineStr, "##"))
             continue;
         stringstream ss(lineStr);
@@ -217,7 +218,7 @@ std::vector<std::vector<std::string>> read_table(std::string filename, std::stri
 // [[Rcpp::export]]
 Rcpp::CharacterMatrix read_vcf(std::string filename, std::string genotype)
 {
-    std::vector<std::vector<std::string>> cMat = std::move(read_table(filename, genotype));
+    std::vector<std::vector<std::string>> cMat = read_table(filename, genotype);
     Rcpp::CharacterVector ColName(cMat.front().begin(), cMat.front().end());
     if (startswith(cMat.front()[0], "#"))
     {
