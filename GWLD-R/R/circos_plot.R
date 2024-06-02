@@ -17,20 +17,17 @@
 
 circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02, 0),
                             track.height = 0.1, cex.lab = 0.6, bg.border = NA, family = NULL, ...) {
-  ### 输入的数据应该有3列,CHROM,POS,ID, 重要的是前两列可以直接拿vcf文件中前5列
-  if (!all(grepl("chr", data[, 1]))) {
-    df <- data.frame()
-    i <- 1
-    for (i in unique(data[, 1])) {
-      tmp_dat <- data[data[, 1] == i, ]
-      chr <- paste0("chr", i)
-      end <- tmp_dat[nrow(tmp_dat), 2]
-      df <- rbind(df, c(chr, 0, end))
-    }
-    colnames(df) <- c("chr", "start", "end")
-    rownames(df) <- df[, 1]
+  ### 输入的数据应该有3列CHROM,POS,ID, 重要的是前两列可以直接拿vcf文件中前5列
+  if (inherits(data, "custom")) {
+  # data structure: chr, start, end
+    df <- as.data.frame(data)
   } else {
-    data <- data
+    df <- data.frame()
+    for (i in unique(data[, 1])) {
+      tmp <- data[data[, 1] == i, ]
+      df <- rbind(df, c(i, 0, max(tmp[, 2])))
+    }
+    dimnames(df) <- list(paste0("chr", df[, 1]), c("chr", "start", "end"))
   }
   # 设置字体
   family <- ifelse(is.null(family), "serif", family)
@@ -38,7 +35,7 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
   circos.clear()
   circos.par(cell.padding = cell.padding)
   ## 必须使用因子，不然顺序会改变
-  circos.initialize(factors = factor(df[, 1], levels = df[, 1]), xlim = df[, 2:3])
+  circos.initialize(factors = factor(df[, 1], levels = sort(df[, 1])), xlim = df[, 2:3])
   ## 坐标轴和标签
   circos.track(
     ylim = ylim, track.height = track.height, bg.border = bg.border,
@@ -46,12 +43,11 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
       sector.index <- get.current.sector.index()
       # 显示坐标轴
       circos.axis(h = "bottom", labels = F)
-      chr.index <- which(get.all.sector.index() == sector.index)
       # 显示染色体号
       xlim <- get.cell.meta.data("xlim")
       circos.text(mean(xlim), 0.6,
-        labels = chr.index, facing = "downward",
-        cex = cex.lab, niceFacing = TRUE, family = family
+                  labels = sector.index, facing = "downward",
+                  cex = cex.lab, niceFacing = TRUE, family = family
       )
     }
   )
@@ -89,10 +85,10 @@ circos.linksnp <- function(data, ylim = c(0, 1), color.theme = "viridis", track.
                            legend.breaks = NULL, legend.labels = NULL, legend.n.breaks = NULL, family = NULL,
                            bg.border = "black", bg.col = NULL, lwd = par("lwd"), lty = par("lty"), ...) {
   # 第一列和第三列的染色体位置必需是数值
-  if (!all(grepl("chr", data[, 1])) && !all(grepl("chr", data[, 4]))) {
-    data[, 1] <- paste0("chr", data[, 1])
-    data[, 4] <- paste0("chr", data[, 4])
-  }
+  # if (!all(grepl("chr", data[, 1])) && !all(grepl("chr", data[, 4]))) {
+  #   data[, 1] <- paste0("chr", data[, 1])
+  #   data[, 4] <- paste0("chr", data[, 4])
+  # }
   # 图例使用多少种颜色
   n.breaks <- ifelse(is.null(legend.n.breaks), 100, legend.n.breaks)
   # 使用viridisLite包中的颜色
