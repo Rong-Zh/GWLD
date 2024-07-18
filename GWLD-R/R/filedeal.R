@@ -13,7 +13,7 @@ ped2matrix <- function(FilePrefix, ...) {
   ped <- data.table::fread(file = pedFile, data.table = FALSE)
   ## map文件有四列, CHROM, SNPID, 0, POS
   map <- data.table::fread(file = mapFile, data.table = FALSE)
-  SnpInfo <- data.frame("CHROM" = map[, 1], "POS" = map[, 4], "ID" = map[, 2])
+  SnpInfo <- data.frame(CHROM = map[, 1], POS = as.numeric(map[, 4]), ID = map[, 2])
   samples <- ped[, 1:6]
   ped <- ped[, 7:ncol(ped)]
   gt <- mapply(function(i, j) paste(ped[, i], ped[, j], sep = "/"),
@@ -23,7 +23,7 @@ ped2matrix <- function(FilePrefix, ...) {
   # 添加行名
   rownames(gt) <- paste(samples[, 1], samples[, 2], sep = ":")
   colnames(gt) <- map[, 2]
-  ped_map <- list(Info = as.matrix(SnpInfo), Genotype = gt)
+  ped_map <- list(Info = SnpInfo, Genotype = gt)
   return(ped_map)
 }
 
@@ -61,8 +61,8 @@ bed2matrix <- function(FilePrefix, ...) {
   plink <- read.plink(FilePrefix)
   bed <- plink$bed
   bim <- plink$bim
-  SnpInfo <- data.frame("CHROM" = bim[, 1], "POS" = bim[, 4], "ID" = bim[, 2])
-  res <- list(Info = as.matrix(SnpInfo), Genotype = bed)
+  SnpInfo <- data.frame(CHROM = bim[, 1], POS = as.numeric(bim[, 4]), ID = bim[, 2])
+  res <- list(Info = SnpInfo, Genotype = bed)
   return(res)
 }
 
@@ -77,14 +77,13 @@ bed2matrix <- function(FilePrefix, ...) {
 #' @export
 vcf2matrix <- function(file, ...) {
   vcf <- data.table::fread(file = file, data.table = FALSE, check.names = FALSE)
-  SnpInfo <- vcf[, 1:3]
-  colnames(SnpInfo) <- c("CHROM", "POS", "ID")
+  SnpInfo <- data.frame(CHROM = vcf[, 1], POS = as.numeric(vcf[, 2]), ID = vcf[, 3])
   gt <- vcf[, 10:ncol(vcf)]
   ## 转换为行为样品，列为位点
   gt <- t(gt)
   colnames(gt) <- SnpInfo$ID
   rownames(gt) <- gsub("_", ":", row.names(gt))
-  return(list(Info = as.matrix(SnpInfo), Genotype = gt))
+  return(list(Info = SnpInfo, Genotype = gt))
 }
 
 #'  read vcf format file
