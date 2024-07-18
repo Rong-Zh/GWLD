@@ -19,7 +19,7 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
                             track.height = 0.1, cex.lab = 0.6, bg.border = NA, family = NULL, ...) {
   ### 输入的数据应该有3列CHROM,POS,ID, 重要的是前两列可以直接拿vcf文件中前5列
   if (inherits(data, "custom")) {
-  # data structure: chr, start, end
+    # data structure: chr, start, end
     df <- as.data.frame(data)
   } else {
     df <- data.frame()
@@ -46,8 +46,8 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
       # 显示染色体号
       xlim <- get.cell.meta.data("xlim")
       circos.text(mean(xlim), 0.6,
-                  labels = sector.index, facing = "downward",
-                  cex = cex.lab, niceFacing = TRUE, family = family
+        labels = sector.index, facing = "downward",
+        cex = cex.lab, niceFacing = TRUE, family = family
       )
     }
   )
