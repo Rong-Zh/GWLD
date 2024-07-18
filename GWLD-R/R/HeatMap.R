@@ -2,7 +2,7 @@
 #'
 #' @param data SNP genotype data.frame or matrix
 #' @param method measure linkage disequilibrium method
-#' @param SnpPosition vector
+#' @param SnpPosition data.frame or matrix
 #' @param SnpName vector
 #' @param color heatmap corlor
 #' @param showLDvalues logical
@@ -47,6 +47,17 @@ HeatMap <- function(data, method = "r^2", SnpPosition = NULL, SnpName = NULL, co
   } else {
     stop("Invalid LD measurement")
   }
+  # The SnpPosition CHORM, POS;
+  # Distances should not be calculated between different chromosomes
+  if (!is.null(SnpPosition)) {
+    Chr <- SnpPosition[, 1]
+    if (length(unique(Chr)) > 1) {
+      SnpPosition <- NULL
+    } else {
+      SnpPosition <- SnpPosition[, 2]
+    }
+  }
+
   # ____________________________创建新的视图框_________________________________#
   mainvp <- viewport(
     width = unit(0.8, "snpc"), height = unit(0.8, "snpc"),
@@ -72,7 +83,7 @@ HeatMap <- function(data, method = "r^2", SnpPosition = NULL, SnpName = NULL, co
   mybreak <- seq(breaks[1], breaks[2], length.out = length(color) + 1)
   colcut <- as.character(cut(LDmatrix, mybreak, labels = as.character(color), include.lowest = T, right = T))
   # ______________________________创建方形框____________________________________#
-  rectcol <- ifelse(nrow(LDmatrix) <= 60, "white", NULL)
+  rectcol <- ifelse(nrow(LDmatrix) <= 60, "white", NA)
   ImageRect <- MakeImageRect(dim(LDmatrix)[1], dim(LDmatrix)[2], colcut,
     name = "heatmapRect", byrow = FALSE, rectlwd = 0.5,
     rectcol = rectcol
