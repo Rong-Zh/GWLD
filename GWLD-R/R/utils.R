@@ -1,5 +1,5 @@
 #' @import grid
-MakeImageRect <- function(nrow, ncol, cols, name, byrow = TRUE, rectlwd = NULL, rectcol = NULL) {
+MakeImageRect <- function(nrow, ncol, cols, name, byrow = TRUE, rectlwd = NULL, rectcol = NA) {
   xx <- (1:ncol) / ncol
   yy <- (1:nrow) / nrow
   # 创建坐标对，重复列号(如果 byrow = TRUE)或行号(如果 byrow = FALSE)以强制该类型的填充
@@ -10,9 +10,8 @@ MakeImageRect <- function(nrow, ncol, cols, name, byrow = TRUE, rectlwd = NULL, 
     right <- rep(xx, each = nrow)
     top <- rep(yy, ncol)
   }
-  if (is.null(rectcol)) {
-    rectcol <- NA ### 设置矩形框的颜色为NA
-  }
+  # 设置矩形框的颜色为NA
+  # rectcol <- NA
   rectGrob(
     x = right, y = top,
     width = 1 / ncol, height = 1 / nrow,
