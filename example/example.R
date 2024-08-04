@@ -79,7 +79,6 @@ rmi_decay <- decay(RMI, Info)
 # or calculate circos result from data
 rmi_decay <- calc_decay(geno012, Info, method = "RMI")
 
-
 # Calculate the decay from result
 RMI <- RMI(geno012, cores = 1)
 rmi_circos <- circos(RMI, Info, threshold = 0.1)
@@ -87,8 +86,62 @@ rmi_circos <- circos(RMI, Info, threshold = 0.1)
 # Calculate the distance between different chromosomes
 rmi_circos <- calc_circos(geno012, Info, method = "RMI", threshold = 0.1, cores = 1)
 
+#_________________________________Plot decay____________________________________
+library(ggplot2)
+duck_decay <- duck$Decay |> dplyr::filter(method == "RMI")
 
-# plot Ciros
+ggplot(data = duck_decay, aes(x = dist / 1000, y = mean)) +
+  geom_point(size = 0.8) +
+  geom_line(linewidth = 0.5) +
+  theme_bw() +
+  labs(x = "Physical distance/ Kb", y = NULL) +
+  theme(
+    panel.grid = element_blank(),
+    axis.title = element_text(size = 15),
+    axis.text = element_text(size = 14),
+    legend.text = element_text(size = 15, hjust = 0),
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.position = c(.90, .85),
+    legend.background = element_blank()
+  ) +
+  scale_x_continuous(limits = c(0, 300), expand = c(0, 5), breaks = seq(0, 300, 20))
+
+# The raw result calculated by the calc_decay function
+tbl <- readRDS(file = "decay.RDS")
+ld_avg <- function(ld, bin) {
+  ld_out <- c()
+  for (i in 1:(length(dist) - 1)) {
+    index <- (ld[, 1] < dist[i + 1]) & (ld[, 1] > dist[i])
+    ld_out[i] <- mean(ld[index, 2])
+  }
+  ld_decay <- cbind(dist = dist[-1], mean = ld_out)
+  return(ld_decay)
+}
+
+# Calculate the average of the bins
+bin <- c(seq(0, 1000, 100), seq(1000, 10000, 1000), seq(10000, 300000, 1000))
+duck_decay <- data.frame(na.omit(ld_avg(tbl[, c(3, 4)], bin)))
+
+# plot
+ggplot(data = duck_decay, aes(x = dist / 1000, y = mean)) +
+  geom_point(size = 0.8) +
+  geom_line(linewidth = 0.5) +
+  theme_bw() +
+  labs(x = "Physical distance/ Kb", y = NULL) +
+  theme(
+    panel.grid = element_blank(),
+    axis.title = element_text(size = 15),
+    axis.text = element_text(size = 14),
+    legend.text = element_text(size = 15, hjust = 0),
+    legend.title = element_blank(),
+    legend.key = element_blank(),
+    legend.position = c(.90, .85),
+    legend.background = element_blank()
+  ) +
+  scale_x_continuous(limits = c(0, 300), expand = c(0, 5), breaks = seq(0, 300, 20))
+
+#_________________________________plot Ciros____________________________________
 circosdata <- duck$Circos
 circos.ideogram(circosdata$chr)
 circos.linksnp(circosdata$linkdata)
