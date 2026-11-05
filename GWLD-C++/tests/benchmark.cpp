@@ -14,7 +14,7 @@ int main() {
         const auto start=std::chrono::steady_clock::now();
         const auto old=methods_mat(g,method,1);
         const auto middle=std::chrono::steady_clock::now();
-        const auto fresh=GWLD::Engine(g).matrix(GWLD::parse_method(method),1);
+        const auto fresh=GWLD::Engine(g,GWLD::parse_method(method)).matrix(GWLD::parse_method(method),1);
         const auto end=std::chrono::steady_clock::now();
         double error=0;
         for (arma::uword j=1;j<g.n_cols;++j) for(arma::uword i=0;i<j;++i)

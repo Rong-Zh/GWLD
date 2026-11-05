@@ -1,20 +1,34 @@
 #pragma once
-#include "core.hpp"
+#include "packed.hpp"
 
 // Include after armadillo or RcppArmadillo. Workers touch only C++ memory.
 namespace GWLD {
 class Engine {
     const arma::Mat<int>& genotypes;
     std::vector<Summary> summaries;
+    PackedGenotypes packed;
+    std::vector<double> log_factorials;
 public:
-    Engine(const arma::Mat<int>& g) : genotypes(g) {
+    Engine(const arma::Mat<int>& g,Method method=Method::RMI) : genotypes(g) {
         summaries.reserve(g.n_cols);
         for (arma::uword i=0; i<g.n_cols; ++i)
-            summaries.push_back(summarize(g.colptr(i),g.n_rows));
+            summaries.push_back(summarize(g.n_rows ? g.colptr(i) : nullptr,g.n_rows));
+        if (g.n_rows>=128 && g.n_cols>=4) packed.build(g);
+        // Cache only when repeated pair evaluations amortize construction, and
+        // bound the cache to 8 MiB even for very large sample cohorts.
+        if (method==Method::RMI && g.n_rows>0 && g.n_rows<(1u<<20) &&
+            static_cast<double>(g.n_cols)*(g.n_cols ? g.n_cols-1 : 0)*8>=g.n_rows+1) {
+            log_factorials.resize(g.n_rows+1);
+            for (std::size_t i=0;i<log_factorials.size();++i)
+                log_factorials[i]=log_gamma(static_cast<double>(i)+1);
+        }
     }
     double at(std::size_t i, std::size_t j, Method method) const {
-        return pair(genotypes.colptr(i),genotypes.colptr(j),genotypes.n_rows,
-                    summaries[i],summaries[j],method);
+        if (!genotypes.n_rows) return nan();
+        const Counts counts=packed.ready() ? packed.count(i,j)
+            : GWLD::count(genotypes.colptr(i),genotypes.colptr(j),genotypes.n_rows);
+        return evaluate_counts(counts,summaries[i],summaries[j],method,
+                               log_factorials.empty() ? nullptr : log_factorials.data());
     }
     arma::Mat<double> matrix(Method method, int threads, double missing=nan()) const {
         if (threads<1) throw std::invalid_argument("Threads must be positive");

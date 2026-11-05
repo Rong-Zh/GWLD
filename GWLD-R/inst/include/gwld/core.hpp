@@ -22,6 +22,15 @@ inline Method parse_method(const std::string& name) {
     throw std::invalid_argument("Unknown method: " + name);
 }
 inline double nan() { return std::numeric_limits<double>::quiet_NaN(); }
+inline double log_gamma(double value) {
+    #if defined(__GLIBC__) || defined(__APPLE__) || defined(__FreeBSD__)
+    // Avoid lgamma's shared signgam state in parallel RMI evaluations.
+    int sign;
+    return ::lgamma_r(value,&sign);
+    #else
+    return std::lgamma(value);
+    #endif
+}
 struct Summary {
     bool present[3] = {false, false, false};
     double p = nan();
@@ -58,7 +67,8 @@ inline Counts count(const int* a, const int* b, std::size_t n) {
         }
     return c;
 }
-inline double information(const Counts& c, const Summary& a, const Summary& b, bool reduced) {
+inline double information(const Counts& c, const Summary& a, const Summary& b, bool reduced,
+                          const double* log_factorials=nullptr) {
     if (!c.n) return nan();
     if (!reduced) {
         double value = 0;
@@ -71,17 +81,23 @@ inline double information(const Counts& c, const Summary& a, const Summary& b, b
     // while the contingency table uses complete pairs.
     double R = 0, S = 0;
     for (int i = 0; i < 3; ++i) { R += a.present[i]; S += b.present[i]; }
-    double I = std::lgamma(c.n+1), sx = 0, sy = 0, lx = 0, ly = 0;
-    for (double v : c.cells) I += std::lgamma(v+1);
+    const auto factorial=[log_factorials](double count) {
+        return log_factorials ? log_factorials[static_cast<std::size_t>(count)] : log_gamma(count+1);
+    };
+    const auto category_gamma=[log_factorials](double categories) {
+        return log_factorials ? log_factorials[static_cast<std::size_t>(categories)-1] : log_gamma(categories);
+    };
+    double I = factorial(c.n), sx = 0, sy = 0, lx = 0, ly = 0;
+    for (double v : c.cells) I += factorial(v);
     const double w = c.n/(c.n+0.5*R*S);
     for (int i = 0; i < 3; ++i) {
         if (a.present[i]) {
-            I -= std::lgamma(c.rows[i]+1);
+            I -= factorial(c.rows[i]);
             const double x = (1-w)/R+w*c.rows[i]/c.n;
             sx += x*x; lx += std::log(x);
         }
         if (b.present[i]) {
-            I -= std::lgamma(c.cols[i]+1);
+            I -= factorial(c.cols[i]);
             const double y = (1-w)/S+w*c.cols[i]/c.n;
             sy += y*y; ly += std::log(y);
         }
@@ -89,8 +105,8 @@ inline double information(const Counts& c, const Summary& a, const Summary& b, b
     const double nu = (S+1)/(S*sx)-1/S, mu = (R+1)/(R*sy)-1/R;
     const double omega = (R-1)*(S-1)*std::log(c.n+0.5*R*S)
         +0.5*(R+nu-2)*ly+0.5*(S+mu-2)*lx
-        +0.5*(std::lgamma(mu*R)+std::lgamma(nu*S)
-              -R*(std::lgamma(S)+std::lgamma(mu))-S*(std::lgamma(R)+std::lgamma(nu)));
+        +0.5*(log_gamma(mu*R)+log_gamma(nu*S)
+              -R*(category_gamma(S)+log_gamma(mu))-S*(category_gamma(R)+log_gamma(nu)));
     return (I-omega)/(c.n*std::log(2.0));
 }
 inline double log_term(double coefficient, double probability) {
@@ -141,12 +157,11 @@ inline double minimize(double a, double b, double pA, double pB, const Counts& m
     }
     return x;
 }
-inline double pair(const int* a, const int* b, std::size_t n,
-                   const Summary& sa, const Summary& sb, Method method) {
-    const Counts c=count(a,b,n);
+inline double evaluate_counts(const Counts& c,const Summary& sa,const Summary& sb,Method method,
+                              const double* log_factorials=nullptr) {
     if (!c.n) return nan();
     if (method==Method::MI || method==Method::RMI)
-        return information(c,sa,sb,method==Method::RMI);
+        return information(c,sa,sb,method==Method::RMI,log_factorials);
     const double p=sa.p, q=sb.p;
     if (!(p>0 && p<1 && q>0 && q<1)) return method==Method::D ? 0 : nan();
     const double lo=std::max(0.0,p+q-1), hi=std::min(p,q);
@@ -159,6 +174,10 @@ inline double pair(const int* a, const int* b, std::size_t n,
     if (method==Method::R2) return std::min(1.0,D*D/(p*q*(1-p)*(1-q)));
     const double bound=D>0 ? std::min(p*(1-q),q*(1-p)) : std::max(-p*q,-(1-p)*(1-q));
     return std::min(1.0,D/bound);
+}
+inline double pair(const int* a,const int* b,std::size_t n,
+                   const Summary& sa,const Summary& sb,Method method) {
+    return evaluate_counts(count(a,b,n),sa,sb,method);
 }
 struct Site { std::string chr, id; std::int64_t pos; };
 class Window {

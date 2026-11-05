@@ -45,6 +45,17 @@ for (method in c("RMI", "MI", "r^2", "D", "D'")) {
 near(MIC_Mat(g, 2L), gwld(g, "MI", 2L))
 near(RMIC_Mat(g, 2L), gwld(g, "RMI", 2L))
 near(LDC_Mat(g, "r^2", 2L), gwld(g, "r^2", 2L))
+# Exercise the packed backend and RMI lookup path above the small-cohort cutoff.
+large <- rbind(g,g,g)
+for (method in c("MI","RMI","r^2","D","D'")) {
+  packed <- gwld(large,method,1L)
+  stopifnot(identical(packed,gwld(large,method,2L)))
+  for (i in seq_len(ncol(large)-1L)) for(j in seq.int(i+1L,ncol(large))) {
+    scalar <- switch(method,MI=MIC(large[,i],large[,j]),RMI=RMIC(large[,i],large[,j]),
+                     LDC(large[,i],large[,j],method))
+    near(packed[i,j],scalar)
+  }
+}
 a <- c(0L, 0L, 1L, 1L, 2L, 2L)
 near(LDC(a, a, "r^2"), 1)
 near(LDC(a, 2L-a, "D'"), 1)
@@ -53,6 +64,8 @@ fails(MIC(a, a[-1]))
 fails(MIC(c(3L, 1L), c(1L, 1L)))
 fails(gwld(g, "unknown", 1L))
 fails(gwld(g, "MI", 0L))
+stopifnot(identical(dim(gwld(matrix(integer(),0,4),"RMI")),c(4L,4L)),
+          all(is.na(gwld(matrix(integer(),0,4),"MI"))))
 info <- cbind(rep(c("1", "2"), 6), c(2000, 10, 1000, 900000, 3000, 5000000000, 0, 11, 1000, 12, 4000, 13), paste0("s", 1:12))
 for (method in c("RMI", "MI", "r^2", "D", "D'")) {
   m <- gwld(g, method)

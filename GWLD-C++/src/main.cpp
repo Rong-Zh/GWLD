@@ -86,7 +86,6 @@ int run(int argc,char* argv[]) {
     const auto method=parse_method(args.get<std::string>("method"));
     const auto prefix=args.get<std::string>("out-prefix");
     auto data=!bed.empty() ? load_bed(bed) : (!ped.empty() ? load_ped(ped) : load_vcf(vcf,threads));
-    Engine engine(data.genotypes);
     std::cerr<<"GWLD 2.0.0: "<<data.samples.size()<<" samples, "<<data.sites.size()<<" variants\n";
     const bool decay=args.get<bool>("decay"),circos=args.get<bool>("circos"),bychrom=args.get<bool>("by-chrom");
     const bool code=args.get<bool>("code012"),freq=args.get<bool>("allele-freq"),convert=args.get<bool>("2vcf");
@@ -94,18 +93,24 @@ int run(int argc,char* argv[]) {
     if (freq) {
         auto out=output(prefix+".freq");
         for (arma::uword j=0; j<data.genotypes.n_cols; ++j) {
-            const auto summary=summarize(data.genotypes.colptr(j),data.genotypes.n_rows);
-            std::size_t missing=0;
-            for (arma::uword i=0; i<data.genotypes.n_rows; ++i) missing+=data.genotypes(i,j)<0;
-            out<<summary.p<<'\t'<<1-summary.p<<'\t'<<static_cast<double>(missing)/data.samples.size()<<'\n';
+            const int* column=data.genotypes.colptr(j);
+            std::size_t called=0; double reference=0;
+            for (arma::uword i=0;i<data.genotypes.n_rows;++i) if (column[i]>=0) {
+                ++called; reference+=2-column[i];
+            }
+            const double p=called ? reference/(2.0*called) : nan();
+            out<<p<<'\t'<<1-p<<'\t'<<static_cast<double>(data.samples.size()-called)/data.samples.size()<<'\n';
         }
         out.close();
     }
     arma::Mat<double> matrix;
     const bool full=args.get<bool>("heatmap") || !(decay || circos || bychrom || code || freq || convert);
-    if (full) { matrix=engine.matrix(method,threads); matrix_file(matrix,prefix+".heatmap"); }
-    if (decay) pairs_file(data,engine,method,threads,true,maxdist,threshold,prefix+".decay",full ? &matrix : nullptr);
-    if (circos) pairs_file(data,engine,method,threads,false,maxdist,threshold,prefix+".circos",full ? &matrix : nullptr);
+    if (full || decay || circos) {
+        const Engine engine(data.genotypes,method);
+        if (full) { matrix=engine.matrix(method,threads); matrix_file(matrix,prefix+".heatmap"); }
+        if (decay) pairs_file(data,engine,method,threads,true,maxdist,threshold,prefix+".decay",full ? &matrix : nullptr);
+        if (circos) pairs_file(data,engine,method,threads,false,maxdist,threshold,prefix+".circos",full ? &matrix : nullptr);
+    }
     if (bychrom) {
         std::map<std::string,std::vector<arma::uword>> chromosomes;
         for (std::size_t i=0; i<data.sites.size(); ++i) chromosomes[data.sites[i].chr].push_back(i);
@@ -117,7 +122,7 @@ int run(int argc,char* argv[]) {
             if (full) local=matrix.submat(index,index);
             else {
                 arma::Mat<int> genotypes=data.genotypes.cols(index);
-                local=Engine(genotypes).matrix(method,threads);
+                local=Engine(genotypes,method).matrix(method,threads);
             }
             matrix_file(local,prefix+".chr"+group.first+".heatmap");
         }

@@ -80,6 +80,8 @@ class CLI(unittest.TestCase):
         self.vcf.write_text(header + '1\t1\ta\tA\tC\t.\t.\t.\tDP:GT\t2:1/0\t3:0|.\t.\t2:1|1')
         self.run_cli('--vcf', self.vcf, '--code012')
         self.assertEqual((self.root/'gwld.vcf').read_text().splitlines()[-1].split('\t')[9:], ['1', '-1', '-1', '2'])
+        self.run_cli('--vcf', self.vcf, '--allele-freq', '-o', 'frequency')
+        self.assertEqual(list(map(float,(self.root/'frequency.freq').read_text().split())), [0.25,0.75,0.5])
         for genotypes in ['0\t0/1\t1/1\t./.', '0/1/1\t0/1\t1/1\t./.',
                           '0/2\t0/1\t1/1\t./.', '0/0\t0/1\t1/1',
                           '0/0\t0/1\t1/1\t./.\t0/0']:

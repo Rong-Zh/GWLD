@@ -20,7 +20,7 @@ void threads_valid(int threads) {
 arma::Mat<double> matrix(arma::Mat<int>& g,const std::string& method,int threads) {
     threads_valid(threads);
     const auto selected=GWLD::parse_method(method);
-    return GWLD::Engine(g).matrix(selected,threads,NA_REAL);
+    return GWLD::Engine(g,selected).matrix(selected,threads,NA_REAL);
 }
 std::vector<GWLD::Site> metadata(Rcpp::CharacterMatrix& info,std::size_t n) {
     if (info.ncol()<3 || static_cast<std::size_t>(info.nrow())!=n)
@@ -114,12 +114,12 @@ Rcpp::CharacterMatrix decay(arma::Mat<double>& m,Rcpp::CharacterMatrix& snpinfo,
 }
 // [[Rcpp::export]]
 Rcpp::CharacterMatrix calc_decay(arma::Mat<int>& geno012,Rcpp::CharacterMatrix& snpinfo,std::string method="RMI",int thread=1,int maxdist=300) {
-    const auto selected=GWLD::parse_method(method); const GWLD::Engine engine(geno012);
+    const auto selected=GWLD::parse_method(method); const GWLD::Engine engine(geno012,selected);
     return compute_pairwise(snpinfo,geno012.n_cols,[&](std::size_t i,std::size_t j){return engine.at(i,j,selected);},thread,true,maxdist,0);
 }
 // [[Rcpp::export]]
 Rcpp::CharacterMatrix calc_circos(arma::Mat<int>& geno012,Rcpp::CharacterMatrix& snpinfo,std::string method="RMI",int thread=1,double threshold=0.2) {
-    const auto selected=GWLD::parse_method(method); const GWLD::Engine engine(geno012);
+    const auto selected=GWLD::parse_method(method); const GWLD::Engine engine(geno012,selected);
     return compute_pairwise(snpinfo,geno012.n_cols,[&](std::size_t i,std::size_t j){return engine.at(i,j,selected);},thread,false,0,threshold);
 }
 // [[Rcpp::export]]
