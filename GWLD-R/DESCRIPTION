@@ -1,8 +1,8 @@
 Package: GWLD
 Type: Package
 Title: a package for genome-wide linkage disequilibrium analysis
-Version: 1.3.7
-Date: 2022-09-27
+Version: 2.0.0
+Date: 2026-11-05
 Author: RongZhang
 Maintainer: RongZhang <202071757@yangtzeu.edu.cn>
 Description: Genome-wide linkage disequilibrium pairwise between genetic markers using different methods. 
@@ -10,6 +10,7 @@ Encoding: UTF-8
 License: GPL (>= 2)
 LazyData: true
 Depends: R (>= 4.0)
-Imports: Rcpp, RcppArmadillo, methods, viridisLite, grid, circlize, data.table
-LinkingTo: Rcpp, RcppArmadillo
+Imports: Rcpp, RcppArmadillo, Rhtslib (>= 2.4.0), methods, viridisLite, grid, circlize, data.table
+LinkingTo: Rcpp, RcppArmadillo, Rhtslib
+SystemRequirements: GNU make
 RoxygenNote: 7.2.3

@@ -11,6 +11,13 @@
 \description{
 convert genotypes separated by ("", "/", "|", ...) to integer genotypes(0, 1, 2, NA, NA for missing value)
 }
+\details{
+Alleles are matched as complete tokens, so A and AT are distinct alleles.
+The most frequent allele is encoded as 0/0; lexical order resolves ties.
+NA, empty strings and the missing tokens . and NA are treated as missing.
+A genotype with either allele missing returns NA. Non-missing genotypes must
+contain exactly two alleles; without separators each allele is one byte.
+}
 \examples{
 
 g0 <- c('T/A', NA, 'T|T', NA, 'T|A', NA, 'T|T', 'T/A','T/T', 'T/T', 

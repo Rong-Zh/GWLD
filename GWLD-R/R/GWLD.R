@@ -22,8 +22,8 @@ setGeneric("GWLD", function(g1, g2, method = "RMI", cores = 1, ...) {
 
 #' @rdname GWLD
 setMethod("GWLD",
-  signature = (g1 <- "data.frame"),
-  function(g1, method = "r^2", cores = 1, ...) {
+  signature = c(g1 = "data.frame"),
+  function(g1, method = "RMI", cores = 1, ...) {
     if (method %in% c("D", "D'", "r^2", "MI", "RMI")) {
       .Call("_GWLD_gwld", geno012 = as.matrix(g1), method, thread = cores, PACKAGE = "GWLD")
     } else {
@@ -34,7 +34,7 @@ setMethod("GWLD",
 
 #' @rdname GWLD
 setMethod("GWLD",
-  signature = (g1 <- "matrix"),
+  signature = c(g1 = "matrix"),
   function(g1, method = "RMI", cores = 1, ...) {
     if (method %in% c("D", "D'", "r^2", "MI", "RMI")) {
       .Call("_GWLD_gwld", geno012 = as.matrix(g1), method, thread = cores, PACKAGE = "GWLD")
@@ -47,13 +47,13 @@ setMethod("GWLD",
 #' @rdname GWLD
 setMethod("GWLD",
   signature = c(g1 = "numeric", g2 = "numeric"),
-  function(g1, g2, method = "RMI", ...) {
+  function(g1, g2, method = "RMI", cores = 1, ...) {
     if (method %in% c("D", "D'", "r^2")) {
       LD(g1, g2, method)
     } else if (method == "MI") {
-      MI(g1, g2, cores)
+      MI(g1, g2)
     } else if (method == "RMI") {
-      RMI(g1, g2, cores)
+      RMI(g1, g2)
     } else {
       stop("Unknown method! Input one of methods(D, D', r^2, MI, RMI) ")
     }

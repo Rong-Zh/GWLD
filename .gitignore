@@ -2,3 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
+.deps/
+build*/
+GWLD-C++/bin/
+*.o
+*.so
+*.dll

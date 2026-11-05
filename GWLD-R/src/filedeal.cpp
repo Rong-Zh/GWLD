@@ -2,6 +2,7 @@
 // [[Rcpp::depends(RcppArmadillo)]]
 
 #include <RcppArmadillo.h>
+#include "../inst/include/gwld/vcf.hpp"
 #include <map>
 #include <vector>
 #include <algorithm>
@@ -13,237 +14,101 @@ using namespace Rcpp;
 using namespace arma;
 using namespace std;
 
-void bed_decode(char *out, const char *in, const int n)
-{
-    char tmp, geno;
-    int a1, a2;
-    for (int i = 0; i < n; ++i)
-    {
-        tmp = in[i];
-        int k = 4 * i;
-        /* geno is interpreted as a char, however a1 and a2 are bits for allele 1 and
-         * allele 2. The final genotype is the sum of the alleles, except for 01
-         * which denotes missing. 3 for NA*/
-        geno = (tmp & 3);
-        a1 = !(geno & 1);
-        a2 = !(geno >> 1);
-        out[k] = (geno == 1) ? 3 : a1 + a2;
-        k++;
-
-        geno = (tmp & 12) >> 2;
-        a1 = !(geno & 1);
-        a2 = !(geno >> 1);
-        out[k] = (geno == 1) ? 3 : a1 + a2;
-        k++;
-
-        geno = (tmp & 48) >> 4;
-        a1 = !(geno & 1);
-        a2 = !(geno >> 1);
-        out[k] = (geno == 1) ? 3 : a1 + a2;
-        k++;
-
-        geno = (tmp & 192) >> 6;
-        a1 = !(geno & 1);
-        a2 = !(geno >> 1);
-        out[k] = (geno == 1) ? 3 : a1 + a2;
-    }
-}
-
 // [[Rcpp::export]]
 arma::Mat<int> read_bed(std::string bedfile, int nSample)
 {
+    if (nSample <= 0) Rcpp::stop("nSample must be positive");
     std::ifstream infile(bedfile, std::ios::in | std::ios::binary);
     if (!infile)
     {
         throw Rcpp::exception("Not find *.bed file");
     }
+    unsigned char magic[3];
+    infile.read(reinterpret_cast<char*>(magic), 3);
+    if (!infile || magic[0] != 0x6c || magic[1] != 0x1b || magic[2] != 0x01)
+        Rcpp::stop("BED must be PLINK SNP-major format");
     infile.seekg(0, std::ifstream::end);
-    // 从第三个字节开始
-    long int len = (int)infile.tellg() - 3;
-    // 向上取整，计算有多少个SNP
-    int np = (int)ceil((double)nSample / 4);
-    int nSnps = len / np;
+    const std::streamoff len = infile.tellg() - std::streamoff(3);
+    const std::size_t bytes = (static_cast<std::size_t>(nSample) + 3) / 4;
+    if (len < 0 || len % bytes) Rcpp::stop("Truncated BED file");
+    const arma::uword nSnps = len / bytes;
     infile.seekg(3, std::ifstream::beg);
-    char *tmp = new char[np];
-    char *tmp2 = new char[np * 4];
+    std::vector<unsigned char> buffer(bytes);
     arma::Mat<int> geno012(nSample, nSnps);
-    arma::Col<int> tmp3(nSample);
-    // 用3来表示缺失,二进制为11
-    for (int j = 0; j < nSnps; j++)
-    {
-        // 读取二进制的基因型
-        infile.read((char *)tmp, sizeof(char) * np);
-        // 解码
-        bed_decode(tmp2, tmp, np);
-        for (int i = 0; i < nSample; i++)
-        {
-            tmp3(i) = (int)tmp2[i];
-        }
-        geno012.col(j) = tmp3;
+    const int decode[4] = {2, NA_INTEGER, 1, 0};
+    for (arma::uword j = 0; j < nSnps; ++j) {
+        infile.read(reinterpret_cast<char*>(buffer.data()), bytes);
+        if (!infile) Rcpp::stop("Truncated BED file");
+        int* target = geno012.colptr(j);
+        for (int i = 0; i < nSample; ++i)
+            target[i] = decode[(buffer[i/4] >> (2*(i%4))) & 3];
     }
-    infile.close();              // 关闭
-    geno012.replace(3, NA_REAL); // 用-1 表示缺失
     return geno012;
 }
 
-bool startswith(const std::string &str, const std::string prefix)
-{
-    return (str.rfind(prefix, 0) == 0);
-}
-
-std::vector<std::vector<std::string>> read_table(std::string filename, std::string genotype)
-{
-
-    ifstream infile;
-    infile.open(filename, ios::in);
-    if (!infile.is_open())
-    {
-        throw Rcpp::exception("*.vcf file loading fail");
-    }
-    std::string lineStr;
-    std::vector<std::vector<std::string>> strArray;
-    while (getline(infile, lineStr))
-    { // 跳过注释的行
-        if (startswith(lineStr, "##"))
-            continue;
-        stringstream ss(lineStr);
-        std::string str;
-        std::vector<std::string> lineArray;
-        std::vector<std::string> row;
-        while (getline(ss, str, '\t'))
-        {
-            lineArray.push_back(str);
-        }
-        if (genotype == "None")
-        {
-            row = lineArray;
-        }
-        else if (genotype == "char")
-        {
-            for (size_t i = 0; i < lineArray.size(); i++)
-            {
-                if (lineArray[i] == "0/0" || lineArray[i] == "0|0")
-                {
-                    row.push_back(lineArray[3] + "/" + lineArray[3]);
-                }
-                else if (lineArray[i] == "0/1" || lineArray[i] == "0|1")
-                {
-                    row.push_back(lineArray[3] + "/" + lineArray[4]);
-                }
-                else if (lineArray[i] == "1/1" || lineArray[i] == "1|1")
-                {
-                    row.push_back(lineArray[4] + "/" + lineArray[4]);
-                }
-                else if (lineArray[i] == "./." || lineArray[i] == ".|.")
-                {
-                    row.push_back("NA");
-                }
-                else
-                {
-                    row.push_back(lineArray[i]);
-                }
-            }
-        }
-        else if (genotype == "int")
-        {
-            for (size_t i = 0; i < lineArray.size(); i++)
-            {
-                if (lineArray[i] == "0/0" || lineArray[i] == "0|0")
-                {
-                    row.push_back("0");
-                }
-                else if (lineArray[i] == "0/1" || lineArray[i] == "0|1")
-                {
-                    row.push_back("1");
-                }
-                else if (lineArray[i] == "1/1" || lineArray[i] == "1|1")
-                {
-                    row.push_back("2");
-                }
-                else if (lineArray[i] == "./." || lineArray[i] == ".|.")
-                {
-                    row.push_back("NA");
-                }
-                else
-                {
-                    row.push_back(lineArray[i]);
-                }
-            }
-        }
-        else if (genotype == "allele")
-        {
-            for (size_t i = 0; i < lineArray.size(); i++)
-            {
-                if (lineArray[i] == "0/0" || lineArray[i] == "0|0")
-                {
-                    row.push_back("0");
-                    row.push_back("0");
-                }
-                else if (lineArray[i] == "0/1" || lineArray[i] == "0|1")
-                {
-                    row.push_back("0");
-                    row.push_back("1");
-                }
-                else if (lineArray[i] == "1/1" || lineArray[i] == "1|1")
-                {
-                    row.push_back("1");
-                    row.push_back("1");
-                }
-                else if (lineArray[i] == "./." || lineArray[i] == ".|.")
-                {
-                    row.push_back("NA");
-                    row.push_back("NA");
-                }
-                else if (i >= 9)
-                {
-                    row.push_back(lineArray[i] + "_A");
-                    row.push_back(lineArray[i] + "_a");
-                }
-                else
-                {
-                    row.push_back(lineArray[i]);
-                }
-            }
-        }
-        else
-        {
-            throw Rcpp::exception("Unknown genotype! Input one of methods(None, char, int, allele) ");
-        }
-        strArray.push_back(row);
-    }
-    infile.close();
-    return strArray;
-}
-
 // [[Rcpp::export]]
-Rcpp::CharacterMatrix read_vcf(std::string filename, std::string genotype)
-{
-    std::vector<std::vector<std::string>> cMat = read_table(filename, genotype);
-    Rcpp::CharacterVector ColName(cMat.front().begin(), cMat.front().end());
-    if (startswith(cMat.front()[0], "#"))
-    {
-        // 去掉首行行名中的#注释
-        ColName[0] = cMat.front()[0].substr(1);
+Rcpp::List read_vcf_matrix(std::string filename,int threads=1) {
+    auto data=GWLD::read_vcf_data(filename,threads);
+    if (data.sites.size()>static_cast<std::size_t>(std::numeric_limits<int>::max()))
+        Rcpp::stop("Too many variants for an R matrix");
+    Rcpp::IntegerMatrix genotypes(data.samples.size(),data.sites.size());
+    std::transform(data.genotypes.begin(),data.genotypes.end(),genotypes.begin(),
+        [](std::int8_t code) { return code<0 ? NA_INTEGER : static_cast<int>(code); });
+    Rcpp::CharacterVector chr(data.sites.size()),ids(data.sites.size());
+    Rcpp::NumericVector positions(data.sites.size());
+    for (std::size_t i=0;i<data.sites.size();++i) {
+        chr[i]=data.sites[i].chr; ids[i]=data.sites[i].id; positions[i]=data.sites[i].pos;
     }
-    int nrows = cMat.size(), ncols = cMat.front().size();
-    Rcpp::CharacterMatrix rMat(nrows - 1, ncols);
-    // 把c++矩阵转换为R语言矩阵
-    for (int row = 1; row < nrows; row++)
-    {
-        for (int col = 0; col < ncols; col++)
-        {
-            if (cMat[row][col] == "NA")
-            {
-                // 把字符NA替换成R语言NA缺失值
-                rMat(row - 1, col) = NA_STRING;
-            }
-            else
-            {
-                rMat(row - 1, col) = cMat[row][col];
+    Rcpp::rownames(genotypes)=Rcpp::wrap(data.samples); Rcpp::colnames(genotypes)=ids;
+    return Rcpp::List::create(Rcpp::Named("Info")=Rcpp::DataFrame::create(
+        Rcpp::Named("CHROM")=chr,Rcpp::Named("POS")=positions,Rcpp::Named("ID")=ids),
+        Rcpp::Named("Genotype")=genotypes);
+}
+
+// The legacy character-table API is an output adapter, not another parser.
+// [[Rcpp::export]]
+Rcpp::CharacterMatrix read_vcf(std::string filename,std::string genotype) {
+    if (genotype!="None" && genotype!="char" && genotype!="int" && genotype!="allele")
+        Rcpp::stop("genotype must be None, char, int or allele");
+    GWLD::VcfReader reader(filename);
+    const auto samples=reader.sample_names();
+    const bool paired=genotype=="allele";
+    const std::size_t columns=9+samples.size()*(paired ? 2 : 1);
+    if (columns>static_cast<std::size_t>(std::numeric_limits<int>::max())) Rcpp::stop("Too many output columns");
+    std::vector<std::vector<std::string>> rows;
+    while (reader.next(genotype!="None")) {
+        auto fields=reader.text_fields();
+        if (genotype!="None") {
+            const auto alleles=reader.alleles();
+            fields.resize(columns);
+            // Write backwards because allele mode expands each sample to two columns.
+            for (std::size_t i=samples.size();i-->0;) {
+                const int code=reader.genotypes()[i];
+                if (paired) {
+                    const int a=reader.allele(i,0),b=reader.allele(i,1);
+                    fields[9+2*i]=a<0 ? "NA" : std::to_string(a);
+                    fields[10+2*i]=b<0 ? "NA" : std::to_string(b);
+                } else if (code<0) fields[9+i]="NA";
+                else if (genotype=="int") fields[9+i]=std::string(1,static_cast<char>('0'+code));
+                else fields[9+i]=alleles[reader.allele(i,0)]+"/"+alleles[reader.allele(i,1)];
             }
         }
+        rows.push_back(std::move(fields));
+        if (rows.size()%4096==0) Rcpp::checkUserInterrupt();
     }
-    // 设置列名
-    colnames(rMat) = ColName;
-    return rMat;
+    if (rows.size()>static_cast<std::size_t>(std::numeric_limits<int>::max())) Rcpp::stop("Too many output rows");
+    Rcpp::CharacterMatrix result(rows.size(),columns);
+    const char* fixed[]={"CHROM","POS","ID","REF","ALT","QUAL","FILTER","INFO","FORMAT"};
+    Rcpp::CharacterVector names(columns);
+    for (int j=0;j<9;++j) names[j]=fixed[j];
+    for (std::size_t i=0;i<samples.size();++i) {
+        if (paired) { names[9+2*i]=samples[i]+"_A"; names[10+2*i]=samples[i]+"_a"; }
+        else names[9+i]=samples[i];
+    }
+    for (std::size_t i=0;i<rows.size();++i) for (std::size_t j=0;j<columns;++j) {
+        if (rows[i][j]=="NA") result(i,j)=NA_STRING;
+        else result(i,j)=rows[i][j];
+    }
+    Rcpp::colnames(result)=names;
+    return result;
 }

@@ -18,6 +18,13 @@ stats allele frequency
  
 stats allele frequency of character genotypes vector
 }
+\details{
+Called alleles are counted using complete tokens. Missing alleles are excluded
+from the allele-frequency denominator. Missing counts and missing rate count
+genotypes with at least one missing allele. Empty input returns empty allele
+vectors, zero missing counts and NA for missing rate. Frequency ties use lexical
+allele order. Genotypes must be diploid.
+}
 \examples{
 
 g0 <- c('T/A', NA, 'T|T', NA, 'T|A', NA, 'T|T', 'T/A','T/T', 'T/T', 

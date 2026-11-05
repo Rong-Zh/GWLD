@@ -7,7 +7,7 @@
 read.vcf(filename, genotype = "None", ...)
 }
 \arguments{
-\item{filename}{vcf format file's name}
+\item{filename}{VCF, compressed VCF (.vcf.gz), or BCF filename}
 
 \item{genotype}{genotype display type, one of "None, "char", "int" and "allele"}
 
@@ -18,4 +18,9 @@ matrix
 }
 \description{
 read vcf format file
+}
+\details{
+Uses the same HTSlib reader as vcf2matrix. Text fields are formatted by HTSlib
+and may be normalized rather than preserving the original byte representation.
+Use vcf2matrix for direct integer dosage input to GWLD calculations.
 }

@@ -1,200 +1,168 @@
 #define ARMA_64BIT_WORD 1
 // [[Rcpp::depends(RcppArmadillo)]]
-
 #include <RcppArmadillo.h>
-#include <map>
-#include <vector>
 #include <algorithm>
-#include <string>
+#include <cstdint>
+#include <cstring>
+#include <limits>
+#include <unordered_map>
+#include <vector>
 
-using namespace std;
-using namespace Rcpp;
-using namespace arma;
+namespace GWLD {
+// R interns character strings. Count each CHARSXP once and parse each distinct
+// genotype once per column; no std::string copies are made for input cells.
+class GenotypeEncoder {
+    struct Allele { const char* data; std::size_t size; std::uint64_t count; };
+    struct Pattern {
+        int first=-1,second=-1,code=NA_INTEGER;
+        std::uint64_t count=0;
+    };
+    bool delimiters[256]={};
+    bool separated;
+    std::unordered_map<SEXP,int> lookup;
+    std::vector<Pattern> patterns;
+    std::vector<Allele> alleles;
+    R_xlen_t missing=0;
 
-bool cmp(pair<std::string, double> a, pair<string, double> b)
-{
-    // 从大到小排列
-    return a.second > b.second;
-}
-
-std::vector<pair<std::string, double>> split_str(CharacterVector &v, string sep)
-{
-    map<std::string, double> m;
-    std::string str, tmp;
-    for (int i = 0; i < v.size(); i++)
-    {
-        if (v[i] == NA_STRING)
-            continue;
-        str = v[i];
-        if (sep.size() == 0)
-        {
-            for (size_t j = 0; j < str.size(); j++)
-            {
-                std::string temp;
-                temp.push_back(str[j]);
-                m[temp] += 1;
-            }
-        }
-        else
-        {
-            size_t start = 0;
-            while (start < str.size())
-            {
-                size_t index = str.find(sep[0], start);
-                for (size_t i = 1; i < sep.size(); ++i)
-                {
-                    size_t it = str.find(sep[i], start);
-                    if (it < index)
-                        index = it;
-                }
-                if (index == std::string::npos)
-                {
-                    tmp = str.substr(start, str.size() - start);
-                    m[tmp] += 1;
-                    break;
-                }
-                tmp = str.substr(start, index - start);
-                m[tmp] += 1;
-                start = index;
-                start++;
-            }
-        }
+    static bool missing_token(const char* text,std::size_t size) {
+        return !size || (size==1 && text[0]=='.') || (size==2 && text[0]=='N' && text[1]=='A');
     }
-    std::vector<pair<std::string, double>> sorted(m.begin(), m.end());
-    sort(sorted.begin(), sorted.end(), cmp);
-    return sorted;
-}
+    static bool less(const Allele& a,const Allele& b) {
+        const int order=std::memcmp(a.data,b.data,std::min(a.size,b.size));
+        return order<0 || (order==0 && a.size<b.size);
+    }
+    int allele(const char* text,std::size_t size) {
+        if (missing_token(text,size)) return -1;
+        for (std::size_t i=0;i<alleles.size();++i)
+            if (size==alleles[i].size && std::memcmp(text,alleles[i].data,size)==0) return static_cast<int>(i);
+        if (alleles.size()>=static_cast<std::size_t>(std::numeric_limits<int>::max()))
+            throw std::length_error("Too many distinct alleles");
+        alleles.push_back({text,size,0});
+        return static_cast<int>(alleles.size()-1);
+    }
+    Pattern parse(SEXP value) {
+        const char* text=CHAR(value);
+        const auto size=static_cast<std::size_t>(LENGTH(value));
+        Pattern pattern;
+        if (missing_token(text,size)) return pattern;
+        if (!separated && size==2) {
+            pattern.first=allele(text,1); pattern.second=allele(text+1,1);
+        } else if (separated && size==3 && delimiters[static_cast<unsigned char>(text[1])]) {
+            if (delimiters[static_cast<unsigned char>(text[0])] || delimiters[static_cast<unsigned char>(text[2])])
+                throw std::invalid_argument("Expected exactly two alleles; check genotype separators");
+            pattern.first=allele(text,1); pattern.second=allele(text+2,1);
+        } else if (separated) {
+            std::size_t split=0;
+            while (split<size && !delimiters[static_cast<unsigned char>(text[split])]) ++split;
+            bool valid=split>0 && split+1<size;
+            for (std::size_t i=split+1;i<size && valid;++i)
+                if (delimiters[static_cast<unsigned char>(text[i])]) valid=false;
+            if (!valid) throw std::invalid_argument("Expected exactly two alleles; check genotype separators");
+            pattern.first=allele(text,split); pattern.second=allele(text+split+1,size-split-1);
+        } else {
+            throw std::invalid_argument("Without separators, each diploid genotype must contain two single-byte alleles");
+        }
+        return pattern;
+    }
+public:
+    explicit GenotypeEncoder(const std::string& sep) : separated(!sep.empty()) {
+        for (unsigned char byte:sep) delimiters[byte]=true;
+        lookup.reserve(16); patterns.reserve(16); alleles.reserve(4);
+    }
+    void analyze(const SEXP* source,R_xlen_t size,int* output=nullptr) {
+        lookup.clear(); patterns.clear(); alleles.clear(); missing=size;
+        for (R_xlen_t i=0;i<size;++i) {
+            const SEXP value=source[i];
+            if (value==NA_STRING) { if (output) output[i]=-1; continue; }
+            auto found=lookup.find(value);
+            int index;
+            if (found==lookup.end()) {
+                if (patterns.size()>=static_cast<std::size_t>(std::numeric_limits<int>::max()))
+                    throw std::length_error("Too many distinct genotypes");
+                index=static_cast<int>(patterns.size());
+                patterns.push_back(parse(value)); lookup.emplace(value,index);
+            } else index=found->second;
+            ++patterns[index].count;
+            if (output) output[i]=index;
+        }
+        for (const auto& pattern:patterns) {
+            if (pattern.first>=0) alleles[pattern.first].count+=pattern.count;
+            if (pattern.second>=0) alleles[pattern.second].count+=pattern.count;
+            if (pattern.first>=0 && pattern.second>=0) missing-=static_cast<R_xlen_t>(pattern.count);
+        }
+        int major=-1;
+        for (std::size_t i=0;i<alleles.size();++i)
+            if (major<0 || alleles[i].count>alleles[major].count ||
+                (alleles[i].count==alleles[major].count && less(alleles[i],alleles[major]))) major=static_cast<int>(i);
+        for (auto& pattern:patterns)
+            if (pattern.first>=0 && pattern.second>=0)
+                pattern.code=2-(pattern.first==major)-(pattern.second==major);
+        if (output) for (R_xlen_t i=0;i<size;++i)
+            output[i]=output[i]<0 ? NA_INTEGER : patterns[output[i]].code;
+    }
+    Rcpp::List frequencies(R_xlen_t size) const {
+        std::vector<std::size_t> order(alleles.size());
+        for (std::size_t i=0;i<order.size();++i) order[i]=i;
+        std::sort(order.begin(),order.end(),[&](std::size_t a,std::size_t b) {
+            return alleles[a].count!=alleles[b].count ? alleles[a].count>alleles[b].count : less(alleles[a],alleles[b]);
+        });
+        double total=0;
+        for (const auto& allele:alleles) total+=allele.count;
+        Rcpp::CharacterVector names(order.size());
+        Rcpp::NumericVector counts(order.size()),frequencies(order.size());
+        for (std::size_t i=0;i<order.size();++i) {
+            const auto& allele=alleles[order[i]];
+            names[i]=std::string(allele.data,allele.size);
+            counts[i]=static_cast<double>(allele.count); frequencies[i]=counts[i]/total;
+        }
+        Rcpp::RObject missing_count=missing<=std::numeric_limits<int>::max()
+            ? Rcpp::wrap(static_cast<int>(missing)) : Rcpp::wrap(static_cast<double>(missing));
+        return Rcpp::List::create(Rcpp::Named("allele")=names,Rcpp::Named("allele counts")=counts,
+            Rcpp::Named("allele freq")=frequencies,Rcpp::Named("missing counts")=missing_count,
+            Rcpp::Named("missing rate")=size ? static_cast<double>(missing)/size : NA_REAL);
+    }
+};
+} // namespace GWLD
 
-//' stats allele frequency
-//'
-//' stats allele frequency of character genotypes vector
-//'
+//' Count allele frequencies in diploid character genotypes
 //' @param vector a character vector of genotypes
-//' @param sep the separator for character genotypes(i.e., "" ,"/", "|")
-//'
-//' @return list
+//' @param sep separator characters (for example "", "/", or "/|")
+//' @return List of alleles, counts, frequencies, missing genotype count and rate.
+//' @details Missing alleles (NA, '.', empty strings) are excluded from allele
+//' counts. A genotype with either allele missing contributes to missing counts.
 //' @export
-//' @name stats_freq
-//' @rdname stats_freq
-//' @examples
-//'
-//' g0 <- c('T/A', NA, 'T|T', NA, 'T|A', NA, 'T|T', 'T/A','T/T', 'T/T',
-//'         'T/A', 'A|A', 'T/T', 'T|A', 'T/A', 'T|T', NA, 'T|A', 'T/A', NA)
-//'
-//' stats_freq(g0, "/|")
-
 // [[Rcpp::export]]
-List stats_freq(CharacterVector &vector, std::string sep)
-{
-    std::vector<pair<std::string, double>> sorted = split_str(vector, sep);
-    Rcpp::CharacterVector allele;
-    Rcpp::NumericVector counts; // 换成Rcpp::NumericVector
-    for (size_t j = 0; j < sorted.size(); j++)
-    {
-        allele.push_back(sorted[j].first);
-        counts.push_back(sorted[j].second);
-    }
-    int NA_counts = vector.size() - 0.5 * Rcpp::sum(counts);
-    double NA_rate = (double)NA_counts / vector.size();
-    Rcpp::NumericVector freq = counts / Rcpp::sum(counts);
-    Rcpp::List L = Rcpp::List::create(_["allele"] = allele,
-                                      _["allele counts"] = counts,
-                                      _["allele freq"] = freq,
-                                      _["missing counts"] = NA_counts,
-                                      _["missing rate"] = NA_rate);
-    return L;
+Rcpp::List stats_freq(Rcpp::CharacterVector& vector,std::string sep) {
+    GWLD::GenotypeEncoder encoder(sep);
+    encoder.analyze(STRING_PTR_RO(vector),vector.size());
+    return encoder.frequencies(vector.size());
 }
 
-string major_allele(CharacterVector &v, std::string sep)
-{
-    std::vector<pair<std::string, double>> sorted = split_str(v, sep);
-    string A1 = sorted[0].first;
-    return A1;
-}
-
-// Character gentype vector recode 0, 1, 2, NA. NA for missing value
-arma::Col<int> code_Vec(CharacterVector &vector, std::string sep)
-{
-    int n = vector.size();
-    arma::Col<int> geno012_col(n);
-    string A1 = major_allele(vector, sep);
-    for (int i = 0; i < n; i++)
-    {
-        int counts = 0;
-        size_t start = 0;
-        if (vector[i] == NA_STRING)
-        {
-            geno012_col(i) = NA_INTEGER; // 表示缺失
-        }
-        else
-        {
-            std::string str = Rcpp::as<std::string>(vector[i]); // R语言字符转string
-            while (start < str.size())
-            {
-                size_t pos = str.find(A1, start); // 有问题
-                if (pos == std::string::npos)
-                {
-                    break;
-                }
-                counts += 1;
-                start = pos;
-                start++;
-            }
-            if (counts == 0)
-                geno012_col(i) = 2;
-            if (counts == 1)
-                geno012_col(i) = 1;
-            if (counts == 2)
-                geno012_col(i) = 0;
-        }
-    }
-    return geno012_col;
-}
-
-//' Convert character genotype to integer genotype
-//'
-//' convert genotypes separated by ("", "/", "|", ...) to integer genotypes(0, 1, 2, NA, NA for missing value)
-//'
+//' Convert diploid character genotypes to major-allele dosages
 //' @param vector a character vector of genotypes
-//' @param sep the separator for character genotypes(i.e., "" ,"/", "|")
-//'
-//' @name recode
-//' @rdname recode
+//' @param sep separator characters (for example "", "/", or "/|")
+//' @details Outputs 0 for two major alleles, 1 for one, 2 for none, and NA for
+//' missing genotypes. Frequency ties use lexical allele order. Alleles are
+//' matched as whole tokens, including multi-character alleles.
 //' @export
-//' @examples
-//'
-//' g0 <- c('T/A', NA, 'T|T', NA, 'T|A', NA, 'T|T', 'T/A','T/T', 'T/T',
-//'         'T/A', 'A|A', 'T/T', 'T|A', 'T/A', 'T|T', NA, 'T|A', 'T/A', NA)
-//'
-//' code012_g1 <- recode(g0, "/|")
-//'
-//' g1 <- c('T/A', NA, 'T/T', NA, 'T/A', NA, 'T/T', 'T/A','T/T', 'T/T',
-//'         'T/A', 'A/A', 'T/T', 'T/A', 'T/A', 'T/T', NA, 'T/A', 'T/A', NA)
-//'
-//' code012_g1 <- recode(g1, "/")
-//'
-//' g2 <- c('01', '01', '00', '01', '00', '01', '01', '01', '01', '00',
-//'         '01', '11', '01', '11', '01', '11','01', '01', '01', '11')
-//'
-//' code012_g2 <- recode(g2, "")
-
 // [[Rcpp::export]]
-Rcpp::IntegerVector recode(CharacterVector &vector, std::string sep)
-{
-    arma::Col<int> geno012_col = code_Vec(vector, sep); // 列向量转成R语言vector
-    return Rcpp::IntegerVector(geno012_col.begin(), geno012_col.end());
+Rcpp::IntegerVector recode(Rcpp::CharacterVector& vector,std::string sep) {
+    Rcpp::IntegerVector output(vector.size());
+    GWLD::GenotypeEncoder encoder(sep);
+    encoder.analyze(STRING_PTR_RO(vector),vector.size(),output.begin());
+    return output;
 }
 
 // [[Rcpp::export]]
-arma::Mat<int> code_Mat(CharacterMatrix &Matrix, std::string sep)
-{
-    int rows = Matrix.nrow(), cols = Matrix.ncol();
-    arma::Mat<int> geno012(rows, cols);
-    for (int i = 0; i < cols; i++)
-    {
-        CharacterVector v = Matrix.column(i);
-        arma::Col<int> geno012_col = code_Vec(v, sep);
-        geno012.col(i) = geno012_col;
+arma::Mat<int> code_Mat(Rcpp::CharacterMatrix& Matrix,std::string sep) {
+    const int rows=Matrix.nrow(),cols=Matrix.ncol();
+    arma::Mat<int> output(rows,cols);
+    if (!rows || !cols) return output;
+    const SEXP* strings=STRING_PTR_RO(Matrix);
+    GWLD::GenotypeEncoder encoder(sep);
+    for (int column=0;column<cols;++column) {
+        encoder.analyze(strings+static_cast<R_xlen_t>(column)*rows,rows,output.colptr(column));
+        if (column%256==0) Rcpp::checkUserInterrupt();
     }
-    return geno012;
+    return output;
 }

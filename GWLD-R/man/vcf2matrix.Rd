@@ -4,16 +4,24 @@
 \alias{vcf2matrix}
 \title{vcf file to matrix}
 \usage{
-vcf2matrix(file, ...)
+vcf2matrix(file, threads = 1L, ...)
 }
 \arguments{
-\item{file}{vcf filename}
+\item{file}{VCF, compressed VCF (.vcf.gz), or BCF filename}
+
+\item{threads}{thread budget for BGZF decompression (default 1)}
 
 \item{...}{NULL}
 }
 \value{
-list
+List with variant metadata in Info and an integer Genotype matrix coded
+0/1/2/NA, with samples as rows and variants as columns.
 }
 \description{
 vcf file to matrix
+}
+\details{
+Uses the shared HTSlib reader. Sample names are preserved unchanged.
+Supports biallelic diploid GT. Unlike version 1.x, Genotype contains integer
+dosages rather than GT text strings.
 }

@@ -71,24 +71,20 @@ bed2matrix <- function(FilePrefix, ...) {
 #'
 #' @rdname vcf2matrix
 #' @return list
-#' @param file vcf filename
+#' @param file VCF, compressed VCF (.vcf.gz), or BCF filename
+#' @param threads thread budget for BGZF decompression (default 1)
 #' @param ... NULL
-#' @importFrom data.table fread
+#' @details Uses the shared HTSlib reader. Genotype is an integer matrix with
+#' samples as rows and variants as columns, coded 0/1/2/NA. Sample names are
+#' preserved without replacing underscores. Supports biallelic diploid GT.
 #' @export
-vcf2matrix <- function(file, ...) {
-  vcf <- data.table::fread(file = file, data.table = FALSE, check.names = FALSE)
-  SnpInfo <- data.frame(CHROM = vcf[, 1], POS = as.numeric(vcf[, 2]), ID = vcf[, 3])
-  gt <- vcf[, 10:ncol(vcf)]
-  ## 转换为行为样品，列为位点
-  gt <- t(gt)
-  colnames(gt) <- SnpInfo$ID
-  rownames(gt) <- gsub("_", ":", row.names(gt))
-  return(list(Info = SnpInfo, Genotype = gt))
+vcf2matrix <- function(file, threads = 1L, ...) {
+  .Call("_GWLD_read_vcf_matrix", path.expand(file), as.integer(threads), PACKAGE = "GWLD")
 }
 
 #'  read vcf format file
 #' @rdname read.vcf
-#' @param filename vcf format file's name
+#' @param filename VCF, compressed VCF (.vcf.gz), or BCF filename
 #' @param genotype genotype display type, one of "None, "char", "int" and "allele"
 #' @param ... NULL
 #'

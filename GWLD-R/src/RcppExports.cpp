@@ -12,36 +12,36 @@ Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
 #endif
 
 // stats_freq
-List stats_freq(CharacterVector& vector, std::string sep);
+Rcpp::List stats_freq(Rcpp::CharacterVector& vector, std::string sep);
 RcppExport SEXP _GWLD_stats_freq(SEXP vectorSEXP, SEXP sepSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< CharacterVector& >::type vector(vectorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterVector& >::type vector(vectorSEXP);
     Rcpp::traits::input_parameter< std::string >::type sep(sepSEXP);
     rcpp_result_gen = Rcpp::wrap(stats_freq(vector, sep));
     return rcpp_result_gen;
 END_RCPP
 }
 // recode
-Rcpp::IntegerVector recode(CharacterVector& vector, std::string sep);
+Rcpp::IntegerVector recode(Rcpp::CharacterVector& vector, std::string sep);
 RcppExport SEXP _GWLD_recode(SEXP vectorSEXP, SEXP sepSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< CharacterVector& >::type vector(vectorSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterVector& >::type vector(vectorSEXP);
     Rcpp::traits::input_parameter< std::string >::type sep(sepSEXP);
     rcpp_result_gen = Rcpp::wrap(recode(vector, sep));
     return rcpp_result_gen;
 END_RCPP
 }
 // code_Mat
-arma::Mat<int> code_Mat(CharacterMatrix& Matrix, std::string sep);
+arma::Mat<int> code_Mat(Rcpp::CharacterMatrix& Matrix, std::string sep);
 RcppExport SEXP _GWLD_code_Mat(SEXP MatrixSEXP, SEXP sepSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< CharacterMatrix& >::type Matrix(MatrixSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type Matrix(MatrixSEXP);
     Rcpp::traits::input_parameter< std::string >::type sep(sepSEXP);
     rcpp_result_gen = Rcpp::wrap(code_Mat(Matrix, sep));
     return rcpp_result_gen;
@@ -56,6 +56,18 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< std::string >::type bedfile(bedfileSEXP);
     Rcpp::traits::input_parameter< int >::type nSample(nSampleSEXP);
     rcpp_result_gen = Rcpp::wrap(read_bed(bedfile, nSample));
+    return rcpp_result_gen;
+END_RCPP
+}
+// read_vcf_matrix
+Rcpp::List read_vcf_matrix(std::string filename, int threads);
+RcppExport SEXP _GWLD_read_vcf_matrix(SEXP filenameSEXP, SEXP threadsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< std::string >::type filename(filenameSEXP);
+    Rcpp::traits::input_parameter< int >::type threads(threadsSEXP);
+    rcpp_result_gen = Rcpp::wrap(read_vcf_matrix(filename, threads));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -159,26 +171,26 @@ BEGIN_RCPP
 END_RCPP
 }
 // decay
-CharacterMatrix decay(arma::Mat<double>& m, CharacterMatrix& snpinfo, int maxdist);
+Rcpp::CharacterMatrix decay(arma::Mat<double>& m, Rcpp::CharacterMatrix& snpinfo, int maxdist);
 RcppExport SEXP _GWLD_decay(SEXP mSEXP, SEXP snpinfoSEXP, SEXP maxdistSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::Mat<double>& >::type m(mSEXP);
-    Rcpp::traits::input_parameter< CharacterMatrix& >::type snpinfo(snpinfoSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type snpinfo(snpinfoSEXP);
     Rcpp::traits::input_parameter< int >::type maxdist(maxdistSEXP);
     rcpp_result_gen = Rcpp::wrap(decay(m, snpinfo, maxdist));
     return rcpp_result_gen;
 END_RCPP
 }
 // calc_decay
-CharacterMatrix calc_decay(arma::Mat<int>& geno012, CharacterMatrix& snpinfo, std::string method, int thread, int maxdist);
+Rcpp::CharacterMatrix calc_decay(arma::Mat<int>& geno012, Rcpp::CharacterMatrix& snpinfo, std::string method, int thread, int maxdist);
 RcppExport SEXP _GWLD_calc_decay(SEXP geno012SEXP, SEXP snpinfoSEXP, SEXP methodSEXP, SEXP threadSEXP, SEXP maxdistSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::Mat<int>& >::type geno012(geno012SEXP);
-    Rcpp::traits::input_parameter< CharacterMatrix& >::type snpinfo(snpinfoSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type snpinfo(snpinfoSEXP);
     Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type thread(threadSEXP);
     Rcpp::traits::input_parameter< int >::type maxdist(maxdistSEXP);
@@ -187,13 +199,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // calc_circos
-CharacterMatrix calc_circos(arma::Mat<int>& geno012, CharacterMatrix& snpinfo, std::string method, int thread, double threshold);
+Rcpp::CharacterMatrix calc_circos(arma::Mat<int>& geno012, Rcpp::CharacterMatrix& snpinfo, std::string method, int thread, double threshold);
 RcppExport SEXP _GWLD_calc_circos(SEXP geno012SEXP, SEXP snpinfoSEXP, SEXP methodSEXP, SEXP threadSEXP, SEXP thresholdSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::Mat<int>& >::type geno012(geno012SEXP);
-    Rcpp::traits::input_parameter< CharacterMatrix& >::type snpinfo(snpinfoSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type snpinfo(snpinfoSEXP);
     Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type thread(threadSEXP);
     Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
@@ -202,13 +214,13 @@ BEGIN_RCPP
 END_RCPP
 }
 // circos
-CharacterMatrix circos(arma::Mat<double>& m, CharacterMatrix& snpinfo, double threshold);
+Rcpp::CharacterMatrix circos(arma::Mat<double>& m, Rcpp::CharacterMatrix& snpinfo, double threshold);
 RcppExport SEXP _GWLD_circos(SEXP mSEXP, SEXP snpinfoSEXP, SEXP thresholdSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::Mat<double>& >::type m(mSEXP);
-    Rcpp::traits::input_parameter< CharacterMatrix& >::type snpinfo(snpinfoSEXP);
+    Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type snpinfo(snpinfoSEXP);
     Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
     rcpp_result_gen = Rcpp::wrap(circos(m, snpinfo, threshold));
     return rcpp_result_gen;
@@ -220,6 +232,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_GWLD_recode", (DL_FUNC) &_GWLD_recode, 2},
     {"_GWLD_code_Mat", (DL_FUNC) &_GWLD_code_Mat, 2},
     {"_GWLD_read_bed", (DL_FUNC) &_GWLD_read_bed, 2},
+    {"_GWLD_read_vcf_matrix", (DL_FUNC) &_GWLD_read_vcf_matrix, 2},
     {"_GWLD_read_vcf", (DL_FUNC) &_GWLD_read_vcf, 2},
     {"_GWLD_RMIC", (DL_FUNC) &_GWLD_RMIC, 2},
     {"_GWLD_RMIC_Mat", (DL_FUNC) &_GWLD_RMIC_Mat, 2},
