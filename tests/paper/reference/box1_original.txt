@@ -1,0 +1,73 @@
+Zhang et al. (2023), Box 1
+https://doi.org/10.1093/g3journal/jkad154
+Extracted from Europe PMC fullTextXML; original typography and placeholders retained.
+
+##install the GWLD packages
+
+devtools::install_github(‘Rong-Zh/GWLD/GWLD-R’)
+
+##using packages
+
+library(GWLD)
+
+#0) Loading example data with base-type genotype
+
+data(duck)
+
+data <- duck$SNP
+
+SNP <- data$genotype
+
+Info <- data$info
+
+## Read data from vcf or plink format file
+
+# Recode the genotypes in vcf file as 0, 1, 2, NA, or recode to another type
+
+vcf_data <- read.vcf(“vcf format file”, genotype=“int”)
+
+plink_data <- read.plink(“plink format file’s prefix”)
+
+#1) recode the genotype with 0,1,2,NA(NA for missing values)
+
+SNP <- codegeno(SNP, sep=“/”)
+
+#2) calculate with different methods (D, D’, r2, RMI, MI)
+
+result <- GWLD(SNP, method = “r^2”, cores = 1)
+
+##or use the following code `
+
+r2 <- LD(SNP, method = “r^2”, cores = 1)
+
+rmi <- RMI(SNP, cores=1)
+
+mi <- MI(SNP, cores=1)
+
+#2.1) LD heatmap plot
+
+p <- HeatMap(SNP, method = “RMI”, SnpPosition = Info$POS, SnpName = Info$ID, cores = 1, color = “YellowTored”, showLDvalues = F)
+
+#3) decay from result(step 2)
+
+rmi_decay <- decay(rmi, Info)
+
+#or calculate circos from data
+
+rmi_decay <- calc_decay(SNP, Info, method=“RMI”)
+
+#4) circos from result(step 2)
+
+rmi_circos <- circos(rmi, Info, threshold=0.2)
+
+#or calculate circos from data
+
+rmi_circos <- calc_circos(SNP, Info, method=“RMI”, threshold=0.2)
+
+#4.1) circos plot
+
+circosdata <- duck$Circos
+
+circos.ideogram(circosdata$chr)
+
+circos.linksnp(circosdata$linkdata, bg.col=rainbow(29))

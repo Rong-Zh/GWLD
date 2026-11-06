@@ -17,19 +17,47 @@ cmake -S GWLD-C++ -B build -DCMAKE_BUILD_TYPE=Release
 cmake --build build -j
 ctest --test-dir build --output-on-failure
 
-# 默认计算 RMI 全矩阵；--method 支持 RMI / MI / r2 / r^2 / D / D'
-./build/GWLD --bfile example/example --method MI --threads 4 -o result
+# calculate 默认计算 RMI 全矩阵；--method 支持 rmi / mi / r2 / d / dprime
+./build/GWLD calculate --bed-prefix example/example --method mi --threads 4 -o result
 
 # 只计算同染色体、300 kb 内的配对，不分配全矩阵
-./build/GWLD --vcf example/example-3.vcf --decay --max-dist 300 -p 4 -o decay
+./build/GWLD calculate --vcf example/example-3.vcf --decay --max-distance-kb 300 -t 4 -o decay
 
 # 加 --heatmap 同时输出全矩阵，decay/circos 复用已经计算的结果
-./build/GWLD --file example/example-2 --decay --heatmap -o result
+./build/GWLD calculate --ped-prefix example/example-2 --decay --heatmap -o result
+
+# 转换与频率统计使用独立子命令
+./build/GWLD convert --bed-prefix example/example --format vcf -o converted
+./build/GWLD convert --vcf example/example-3.vcf --format dosage -o genotypes
+./build/GWLD summarize --vcf example/example-3.vcf -o frequencies
 ```
+
+CLI 统一使用 `GWLD <子命令> [选项]`；长选项使用小写和连字符，线程为
+`-t/--threads`，输出前缀为 `-o/--output-prefix`。旧的扁平调用方式和参数已移除。
+数值基因型输出为 `.dosage.tsv`（缺失值为 `NA`），频率输出为 `.freq.tsv`。
 
 非标准安装位置可通过 `-DGWLD_ARMADILLO_INCLUDE_DIR=/path/to/include` 指定。
 没有 OpenMP 时可用 `-DGWLD_OPENMP=OFF` 构建，运行时使用单线程。
 完整参数及迁移说明见 [C++ 2.0 使用说明](GWLD-C++/README.md)。
+
+### macOS（Apple Silicon）
+
+使用 Homebrew 的原生依赖和 LLVM 编译器：
+
+```bash
+brew install cmake pkg-config armadillo htslib llvm libomp
+git submodule update --init --recursive
+cmake -S GWLD-C++ -B build -DCMAKE_BUILD_TYPE=Release \
+  -DCMAKE_CXX_COMPILER="$(brew --prefix llvm)/bin/clang++" \
+  -DGWLD_USE_BUNDLED_HTSLIB=OFF \
+  -DCMAKE_INSTALL_PREFIX="$PWD/build/install"
+cmake --build build -j
+ctest --test-dir build --output-on-failure
+cmake --install build
+./build/install/bin/GWLD --version
+```
+
+macOS 构建会启用 `_REENTRANT`，以使用系统提供的线程安全 `lgamma_r`。
 
 ## R 包
 
@@ -50,7 +78,22 @@ R 保留现有函数接口，并优化矩阵计算、decay 和 circos。
 R 包通过 Rhtslib 构建，不链接 CLI 的 Linux 静态库。
 回归测试：安装包后运行 `Rscript GWLD-R/tests/core.R` 和 `Rscript GWLD-R/tests/vcf.R`。
 
+`ped2matrix()` 与 VCF/BED 读取器一样，默认直接返回 `0/1/2/NA` 整数基因型，
+无需再调用 `codegeno()`；需要原始等位基因字符串时指定 `genotype = "char"`。
+`codegeno()` 默认识别 `/` 和 `|`，对已编码数值矩阵保持等位基因方向。
+`HeatMap(input)` 可直接使用读取器返回的 `Genotype` 和 `Info`；已有 LD 矩阵时用
+`HeatMap(input, LDmatrix = r2)` 直接绘图，不重复计算。
+circos 绘图可直接使用 `Info` 和 `circos()` / `calc_circos()` 的字符配对结果，
+无需手动修改列类型。完整流程见 [example/example.R](example/example.R)，
+安装后可从仓库根目录执行 `source("example/example.R", chdir = TRUE)`。
+新增流程回归测试：`Rscript GWLD-R/tests/workflow.R`。
+
 ## 性能与验证
+
+论文 Box 1 原文、原始补充材料及适配 2.0 的可运行验证脚本见
+[2023 论文验证说明](tests/paper/README.md)。安装 `genetics`、`infotheo` 后运行
+`Rscript tests/paper/paper_2023.R`，可检查 MI、RMI 和 LD 数值及并行一致性，
+并生成热图与结果表。
 
 本机 WSL、i5-12400、GCC 13.3 Release、单线程、512 样本 × 384 位点、
 25% 缺失率、固定随机种子 2026，三轮交替取中位数：

@@ -1,5 +1,9 @@
 cmake_minimum_required(VERSION 3.14)
 project(GWLD VERSION 2.0.0 LANGUAGES CXX)
+if(APPLE)
+    # Darwin exposes the thread-safe lgamma_r declaration with this feature flag.
+    add_compile_definitions(_REENTRANT)
+endif()
 if(NOT CMAKE_BUILD_TYPE AND NOT CMAKE_CONFIGURATION_TYPES)
     set(CMAKE_BUILD_TYPE Release CACHE STRING "Build type" FORCE)
 endif()

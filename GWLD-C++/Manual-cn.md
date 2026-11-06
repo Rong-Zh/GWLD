@@ -1,5 +1,8 @@
 # GWLD manual
 
+> 本文保留为 1.x 历史手册，其中参数已不适用于当前 CLI。
+> 2.0 请使用 `GWLD calculate`、`GWLD convert`、`GWLD summarize`，详见 [当前使用说明](README.md)。
+
 ## 一、安装
 
 1. 依赖

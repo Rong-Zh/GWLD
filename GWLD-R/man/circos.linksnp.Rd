@@ -62,6 +62,9 @@ circos.linksnp(
 \description{
 link snp
 }
+\details{
+Character matrices returned by circos or calc_circos can be passed directly. Coordinates and LD values are converted internally. Empty pair tables are accepted without drawing links.
+}
 \examples{
 NULL
 }

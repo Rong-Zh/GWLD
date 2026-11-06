@@ -1,6 +1,6 @@
 #' linkage disequilibrium heatmap
 #'
-#' @param data SNP genotype data.frame or matrix
+#' @param data genotype matrix/data.frame, or a reader result with Genotype and Info
 #' @param method measure linkage disequilibrium method
 #' @param SnpPosition data.frame or matrix
 #' @param SnpName vector
@@ -9,6 +9,7 @@
 #' @param title heatmap's title
 #' @param label.size label's font size of heatmap
 #' @param family Font for heatmap
+#' @param LDmatrix optional precomputed LD matrix; when supplied, skip LD calculation
 #' @param cores thread number
 #' @param ... NULL
 #'
@@ -16,45 +17,63 @@
 #' @return HeatMap
 #' @export
 #' @examples NULL
-# 需要修改
-HeatMap <- function(data, method = "r^2", SnpPosition = NULL, SnpName = NULL, cores = 1,
-                    color = NULL, showLDvalues = FALSE, title = "Pairwise LD", label.size = 10, family = NULL, ...) {
+HeatMap <- function(data = NULL, method = "r^2", SnpPosition = NULL, SnpName = NULL, cores = 1,
+                    color = NULL, showLDvalues = FALSE, title = "Pairwise LD", label.size = 10, family = NULL,
+                    LDmatrix = NULL, ...) {
+  if (is.list(data) && !is.data.frame(data)) {
+    if (is.null(data$Genotype) || is.null(data$Info)) stop("Reader result must contain Genotype and Info")
+    if (is.null(SnpPosition)) SnpPosition <- data$Info[, 1:2, drop = FALSE]
+    if (is.null(SnpName)) SnpName <- data$Info[, 3L]
+    data <- data$Genotype
+  }
   if (method == "r^2") {
-    LDmatrix <- LD(data, method = "r^2", cores = cores)
     breaks <- c(0, 1)
     labels <- seq(0, 1, 0.2)
     legend.title <- expression(paste(r^2, " Color Key"))
   } else if (method == "D'") {
-    LDmatrix <- LD(data, method = "D'", cores = cores)
     breaks <- c(0, 1)
     labels <- seq(0, 1, 0.2)
     legend.title <- "D' Color Key"
   } else if (method == "D") {
-    LDmatrix <- LD(data, method = "D", cores = cores)
     breaks <- c(-1, 1)
     labels <- seq(-1, 1, 0.5)
     legend.title <- "D Color Key"
   } else if (method == "RMI") {
     breaks <- c(-0.1, 1.6)
     labels <- seq(0, 1.5, 0.3)
-    LDmatrix <- RMI(data, cores = cores)
     legend.title <- "RMI Color Key"
   } else if (method == "MI") {
-    LDmatrix <- MI(data, cores = cores)
     breaks <- c(0, 1.6)
     labels <- seq(0, 1.5, 0.3)
     legend.title <- "MI Color Key"
   } else {
     stop("Invalid LD measurement")
   }
+  if (is.null(LDmatrix)) {
+    if (is.null(data)) stop("Supply genotypes or a precomputed LDmatrix")
+    LDmatrix <- GWLD(codegeno(data), method = method, cores = cores)
+  }
+  if (!is.matrix(LDmatrix) || !is.numeric(LDmatrix) || !nrow(LDmatrix) || nrow(LDmatrix) != ncol(LDmatrix))
+    stop("LDmatrix must be a nonempty square numeric matrix")
+  if (!is.null(data) && ncol(data) != nrow(LDmatrix)) stop("LDmatrix and genotype variant counts differ")
+  if (is.null(SnpName)) SnpName <- colnames(LDmatrix)
+  if (!is.null(SnpName) && length(SnpName) != nrow(LDmatrix)) stop("SnpName length must match LDmatrix")
+  if (!is.null(SnpName) && !identical(dimnames(LDmatrix), list(as.character(SnpName), as.character(SnpName))))
+    dimnames(LDmatrix) <- list(as.character(SnpName), as.character(SnpName))
   # The SnpPosition CHORM, POS;
   # Distances should not be calculated between different chromosomes
   if (!is.null(SnpPosition)) {
-    Chr <- SnpPosition[, 1]
-    if (length(unique(Chr)) > 1) {
-      SnpPosition <- NULL
+    if (is.null(dim(SnpPosition))) {
+      if (length(SnpPosition) != nrow(LDmatrix)) stop("SnpPosition length must match LDmatrix")
     } else {
-      SnpPosition <- SnpPosition[, 2]
+      if (nrow(SnpPosition) != nrow(LDmatrix) || ncol(SnpPosition) < 2L)
+        stop("SnpPosition must have one chromosome/position row per variant")
+      Chr <- SnpPosition[, 1]
+      SnpPosition <- if (length(unique(Chr)) > 1) NULL else SnpPosition[, 2]
+    }
+    if (!is.null(SnpPosition)) {
+      SnpPosition <- suppressWarnings(as.numeric(as.character(SnpPosition)))
+      if (any(!is.finite(SnpPosition))) stop("SnpPosition must contain finite numeric positions")
     }
   }
 

@@ -47,9 +47,8 @@ if (nzchar(converter)) {
 cli <- Sys.getenv("GWLD_TEST_CLI")
 if (nzchar(cli)) {
   prefix <- file.path(root,"cli")
-  stopifnot(system2(cli,c("--vcf",shQuote(gzip),"--code012","-o",shQuote(prefix)))==0L)
-  codes <- as.matrix(read.table(paste0(prefix,".vcf"),header=TRUE,comment.char="",skip=2,check.names=FALSE)[,10:13])
-  codes[codes<0] <- NA_integer_
+  stopifnot(system2(cli,c("convert","--vcf",shQuote(gzip),"--format","dosage","-o",shQuote(prefix)))==0L)
+  codes <- as.matrix(read.table(paste0(prefix,".dosage.tsv"),header=TRUE,comment.char="",check.names=FALSE)[,6:9])
   near(t(codes),expected)
 }
 writeChar(header,path,eos=NULL,useBytes=TRUE)

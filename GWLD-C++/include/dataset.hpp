@@ -93,7 +93,7 @@ inline std::ofstream output(const std::string& path) {
     stream.precision(12);
     return stream;
 }
-inline void write_genotypes(const Dataset& data,const std::string& path,bool numeric) {
+inline void write_vcf(const Dataset& data,const std::string& path) {
     auto out=output(path);
     out<<"##fileformat=VCFv4.2\n##FORMAT=<ID=GT,Number=1,Type=String,Description=\"Genotype\">\n";
     out<<"#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT";
@@ -105,7 +105,24 @@ inline void write_genotypes(const Dataset& data,const std::string& path,bool num
         out<<s.chr<<'\t'<<s.pos<<'\t'<<s.id<<'\t'<<data.alleles[j][0]<<'\t'<<data.alleles[j][1]<<"\t.\t.\t.\tGT";
         for (std::size_t i=0; i<data.samples.size(); ++i) {
             const int code=data.genotypes(i,j); out<<'\t';
-            if (numeric) out<<code; else out<<gt[code+1];
+            out<<gt[code+1];
+        }
+        out<<'\n';
+    }
+    out.close();
+}
+inline void write_dosage(const Dataset& data,const std::string& path) {
+    auto out=output(path);
+    out<<"CHROM\tPOS\tID\tREF\tALT";
+    for (const auto& sample:data.samples) out<<'\t'<<sample;
+    out<<'\n';
+    for (std::size_t j=0; j<data.sites.size(); ++j) {
+        const auto& site=data.sites[j];
+        out<<site.chr<<'\t'<<site.pos<<'\t'<<site.id<<'\t'<<data.alleles[j][0]<<'\t'<<data.alleles[j][1];
+        for (std::size_t i=0; i<data.samples.size(); ++i) {
+            out<<'\t';
+            if (data.genotypes(i,j)<0) out<<"NA";
+            else out<<data.genotypes(i,j);
         }
         out<<'\n';
     }

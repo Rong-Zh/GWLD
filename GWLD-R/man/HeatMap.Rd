@@ -5,7 +5,7 @@
 \title{linkage disequilibrium heatmap}
 \usage{
 HeatMap(
-  data,
+  data = NULL,
   method = "r^2",
   SnpPosition = NULL,
   SnpName = NULL,
@@ -15,15 +15,16 @@ HeatMap(
   title = "Pairwise LD",
   label.size = 10,
   family = NULL,
+  LDmatrix = NULL,
   ...
 )
 }
 \arguments{
-\item{data}{SNP genotype data.frame or matrix}
+\item{data}{Genotype matrix/data.frame, or a reader result containing Genotype and Info. May be omitted when LDmatrix is supplied.}
 
 \item{method}{measure linkage disequilibrium method}
 
-\item{SnpPosition}{vector}
+\item{SnpPosition}{Position vector, or a matrix/data.frame with chromosome and position columns. Inferred from reader results.}
 
 \item{SnpName}{vector}
 
@@ -38,6 +39,8 @@ HeatMap(
 \item{label.size}{label's font size of heatmap}
 
 \item{family}{Font for heatmap}
+
+\item{LDmatrix}{Optional precomputed square numeric LD matrix. When supplied, no genotype conversion or LD calculation is performed. Use method to select the appropriate legend.}
 
 \item{...}{NULL}
 }

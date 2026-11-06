@@ -6,18 +6,21 @@
 \alias{codegeno,matrix-method}
 \title{Convert character genotype matrix to integer genotype matrix}
 \usage{
-codegeno(data, sep, ...)
+codegeno(data, sep = "/|", ...)
 
-\S4method{codegeno}{data.frame}(data, sep, ...)
+\S4method{codegeno}{data.frame}(data, sep = "/|", ...)
 
-\S4method{codegeno}{matrix}(data, sep, ...)
+\S4method{codegeno}{matrix}(data, sep = "/|", ...)
 }
 \arguments{
 \item{data}{character numeric matrix of genotype}
 
-\item{sep}{the separator for character genotypes matrix(i.e., "" ,"/", "|")}
+\item{sep}{Separator characters for character genotypes, default "/|".}
 
 \item{...}{optional arguments (ignored)}
+}
+\details{
+Numeric matrices already coded 0/1/2/NA are returned as integer matrices without changing allele direction. Character genotypes are encoded relative to the major allele. Dimensions and sample/variant names are preserved.
 }
 \description{
 convert genotypes matrix separated by ("", "/", "|", ...) to integer genotypes matrix(0, 1, 2, NA, NA for missing value)

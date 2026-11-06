@@ -16,7 +16,7 @@ circos.ideogram(
 )
 }
 \arguments{
-\item{data}{data.frame}
+\item{data}{Chromosome/position matrix or data.frame, or custom chromosome ranges.}
 
 \item{ylim}{Range of data on y-axis}
 
@@ -34,6 +34,9 @@ circos.ideogram(
 }
 \description{
 circos snp
+}
+\details{
+Numeric coordinate strings are converted internally. Chromosome names are preserved, including nonnumeric names.
 }
 \examples{
 NULL

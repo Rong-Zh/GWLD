@@ -1,8 +1,9 @@
 # install GWLD
 # Install Rtools first for Windows. Visit https://cran.r-project.org/bin/.
 # install LLVM and libomp first for macOS M chip.
-install.packages("devtools")
-devtools::install_github("Rong-Zh/GWLD/GWLD-R")
+# Run these only when installing; keep the local package when testing.
+# install.packages("devtools")
+# devtools::install_github("Rong-Zh/GWLD/GWLD-R")
 
 # loading package
 library(GWLD)
@@ -17,24 +18,16 @@ geno012 <- codegeno(dta$genotype, sep = "/")
 HeatMap(geno012, method = "r^2", SnpPosition = Info[, 1:2], SnpName = Info$ID, cores = 1, color = "YellowTored", showLDvalues = F)
 
 ## VCF format
-# Approach 1
-vcf <- read.vcf(filename = "example-3.vcf", genotype = "int")
-Info <- data.frame(CHROM = vcf[, 1], POS = as.numeric(vcf[, 2]), ID = vcf[, 3])
-SNP <- data.frame(t(vcf[, 10:ncol(vcf)]))
-geno012 <- apply(SNP, 2, as.numeric)
-row.names(geno012) <- row.names(SNP)
-colnames(geno012) <- Info$ID
-
-HeatMap(geno012, method = "r^2", SnpPosition = Info[, 1:2], SnpName = Info$ID, cores = 1, color = "YellowTored", showLDvalues = F)
-
-# Approach 2
+# Approach 1: read numeric genotypes and metadata directly.
 SNP <- vcf2matrix("example-3.vcf")
 Info <- SNP$Info
-
-head(SNP$Genotype)
-geno012 <- codegeno(SNP$Genotype, sep = "/")
+geno012 <- SNP$Genotype
 
 HeatMap(geno012, method = "r^2", SnpPosition = Info[, 1:2], SnpName = Info$ID, cores = 1, color = "YellowTored", showLDvalues = F)
+
+# Approach 2: pass the same reader result directly to the plotter.
+head(SNP$Genotype)
+HeatMap(SNP, method = "r^2", cores = 1, color = "YellowTored", showLDvalues = F)
 
 ## Plink format
 # read plink format(ped, map)
@@ -111,11 +104,11 @@ ggplot(data = duck_decay, aes(x = dist / 1000, y = mean)) +
 tbl <- readRDS(file = "decay.RDS")
 ld_avg <- function(ld, bin) {
   ld_out <- c()
-  for (i in 1:(length(dist) - 1)) {
-    index <- (ld[, 1] < dist[i + 1]) & (ld[, 1] > dist[i])
+  for (i in seq_len(length(bin) - 1L)) {
+    index <- (ld[, 1] < bin[i + 1]) & (ld[, 1] >= bin[i])
     ld_out[i] <- mean(ld[index, 2])
   }
-  ld_decay <- cbind(dist = dist[-1], mean = ld_out)
+  ld_decay <- cbind(dist = bin[-1], mean = ld_out)
   return(ld_decay)
 }
 

@@ -2,10 +2,16 @@
 #'
 #' @rdname ped2matrix
 #' @param FilePrefix plink format(.ped, .map) file prefix
+#' @param genotype "int" (default) for 0/1/2/NA or "char" for allele strings
+#' @details Integer genotypes count non-major alleles. Missing PED alleles (0)
+#' become NA; frequency ties use lexical allele order. No intermediate genotype
+#' strings are constructed for integer output.
 #' @param ... NULL
 #' @importFrom data.table fread
 #' @export
-ped2matrix <- function(FilePrefix, ...) {
+ped2matrix <- function(FilePrefix, genotype = c("int", "char"), ...) {
+  genotype <- match.arg(genotype)
+  FilePrefix <- path.expand(FilePrefix)
   pedFile <- paste0(FilePrefix, ".ped")
   mapFile <- paste0(FilePrefix, ".map")
   ## ped文件前六列:FamilyID, IndividualID, PaternalID, MaternalID, Sex(1=male; 2=female),Phenotype
@@ -14,12 +20,30 @@ ped2matrix <- function(FilePrefix, ...) {
   ## map文件有四列, CHROM, SNPID, 0, POS
   map <- data.table::fread(file = mapFile, data.table = FALSE)
   SnpInfo <- data.frame(CHROM = map[, 1], POS = as.numeric(map[, 4]), ID = map[, 2])
-  samples <- ped[, 1:6]
-  ped <- ped[, 7:ncol(ped)]
-  gt <- mapply(function(i, j) paste(ped[, i], ped[, j], sep = "/"),
-    c(seq(1, ncol(ped), 2)), c(seq(2, ncol(ped), 2)),
-    SIMPLIFY = T, USE.NAMES = F
-  )
+  if (!nrow(ped) || !nrow(map) || ncol(ped) != 6L + 2L * nrow(map))
+    stop("PED must contain six sample fields and two alleles per MAP variant")
+  samples <- ped[, 1:6, drop = FALSE]
+  gt <- matrix(if (genotype == "int") NA_integer_ else NA_character_, nrow(ped), nrow(map))
+  for (j in seq_len(nrow(map))) {
+    first <- as.character(ped[[2L * j + 5L]])
+    second <- as.character(ped[[2L * j + 6L]])
+    first[is.na(first) | first == "0"] <- NA_character_
+    second[is.na(second) | second == "0"] <- NA_character_
+    if (genotype == "char") {
+      first[is.na(first)] <- "."
+      second[is.na(second)] <- "."
+      gt[, j] <- paste(first, second, sep = "/")
+    } else {
+      alleles <- c(first, second)
+      levels <- sort(unique(alleles[!is.na(alleles)]), method = "radix")
+      if (length(levels) > 2L) stop("PED contains a multiallelic variant: ", map[j, 2L])
+      if (length(levels)) {
+        counts <- tabulate(match(alleles, levels), nbins = length(levels))
+        major <- levels[which.max(counts)]
+        gt[, j] <- as.integer(first != major) + as.integer(second != major)
+      }
+    }
+  }
   # 添加行名
   rownames(gt) <- paste(samples[, 1], samples[, 2], sep = ":")
   colnames(gt) <- map[, 2]

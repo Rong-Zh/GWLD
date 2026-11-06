@@ -1,5 +1,8 @@
 # GWLD manual (an R package for genome-wide linkage disequilibrium analysis) 
 
+> Archived 1.x manual. Its options do not apply to the current CLI.
+> For 2.0, use `GWLD calculate`, `GWLD convert`, or `GWLD summarize`; see [current usage](README.md).
+
 ## 1. Installation
 
 1. Dependences

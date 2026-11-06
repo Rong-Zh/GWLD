@@ -1,6 +1,14 @@
+.circos_numeric <- function(x, name) {
+  value <- suppressWarnings(as.numeric(as.character(x)))
+  if (any(!is.finite(value))) stop(name, " must contain finite numeric values")
+  value
+}
+
 #' circos snp
 #'
-#' @param data data.frame
+#' @param data chromosome/position matrix or data.frame, or custom chromosome ranges
+#' @details Numeric coordinate strings are converted internally; chromosome names
+#' are preserved, including nonnumeric names.
 #' @param ylim Range of data on y-axis
 #' @param cell.padding only affect current track
 #' @param track.height Height of the track. It is the percentage to the radius of the unit circles
@@ -21,7 +29,12 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
   if (inherits(data, "custom")) {
     # data structure: chr, start, end
     df <- as.data.frame(data)
+    df[, 2] <- .circos_numeric(df[, 2], "Chromosome starts")
+    df[, 3] <- .circos_numeric(df[, 3], "Chromosome ends")
   } else {
+    data <- as.data.frame(data, stringsAsFactors = FALSE)
+    if (ncol(data) < 2L || !nrow(data)) stop("Supply chromosome and position columns")
+    data[, 2] <- .circos_numeric(data[, 2], "SNP positions")
     df <- data.frame()
     for (i in unique(data[, 1])) {
       tmp <- data[data[, 1] == i, ]
@@ -29,13 +42,19 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
     }
     dimnames(df) <- list(paste0("chr", df[, 1]), c("chr", "start", "end"))
   }
+  df[, 1] <- as.character(df[, 1])
+  if (anyNA(df[, 1]) || any(!nzchar(df[, 1]))) stop("Chromosome names must not be missing")
+  df[, 2] <- .circos_numeric(df[, 2], "Chromosome starts")
+  df[, 3] <- .circos_numeric(df[, 3], "Chromosome ends")
   # 设置字体
   family <- ifelse(is.null(family), "serif", family)
   # 清除circos参数
   circos.clear()
   circos.par(cell.padding = cell.padding)
   ## 必须使用因子，不然顺序会改变
-  circos.initialize(factors = factor(df[, 1], levels = sort(df[, 1])), xlim = df[, 2:3])
+  chromosome_order <- if (all(grepl("^[0-9]+$", df[, 1])))
+    df[order(as.numeric(df[, 1])), 1] else sort(df[, 1])
+  circos.initialize(factors = factor(df[, 1], levels = chromosome_order), xlim = df[, 2:3])
   ## 坐标轴和标签
   circos.track(
     ylim = ylim, track.height = track.height, bg.border = bg.border,
@@ -56,6 +75,8 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
 #' link snp
 #'
 #' @param data  A data frame with 7 columns;Chr_1, Pos_1, ID_1, Chr_2, Pos_2, ID_2 value
+#' @details Character matrices returned by circos/calc_circos are accepted directly.
+#' Coordinates and LD values are converted internally; empty pair tables are accepted.
 #' @param ylim  Range of data on y-axis
 #' @param color.theme The color theme in the legend
 #' @param track.height Height of the track
@@ -84,6 +105,17 @@ circos.linksnp <- function(data, ylim = c(0, 1), color.theme = "viridis", track.
                            legend.position = c(0.88, 0.75), legend.fontsize = 12, legend.limits = NULL,
                            legend.breaks = NULL, legend.labels = NULL, legend.n.breaks = NULL, family = NULL,
                            bg.border = "black", bg.col = NULL, lwd = par("lwd"), lty = par("lty"), ...) {
+  data <- as.data.frame(data, stringsAsFactors = FALSE)
+  if (ncol(data) != 7L) stop("Circos pairs must have seven columns")
+  if (!nrow(data)) {
+    circos.clear()
+    return(invisible(NULL))
+  }
+  data[, 1] <- as.character(data[, 1])
+  data[, 4] <- as.character(data[, 4])
+  data[, 2] <- .circos_numeric(data[, 2], "First SNP positions")
+  data[, 5] <- .circos_numeric(data[, 5], "Second SNP positions")
+  data[, 7] <- .circos_numeric(data[, 7], "LD values")
   # 第一列和第三列的染色体位置必需是数值
   # if (!all(grepl("chr", data[, 1])) && !all(grepl("chr", data[, 4]))) {
   #   data[, 1] <- paste0("chr", data[, 1])
@@ -101,6 +133,7 @@ circos.linksnp <- function(data, ylim = c(0, 1), color.theme = "viridis", track.
   } else {
     limits <- legend.limits
   }
+  if (limits[1] == limits[2]) limits <- limits + c(-0.05, 0.05)
   color_breaks <- seq(limits[1], limits[2], length.out = n.breaks + 1)
   colorkey <- cut(data[, 7], color_breaks, labels = link.colors, include.lowest = T)
   # #转换成RGB,归一化至[0,1]
@@ -114,7 +147,7 @@ circos.linksnp <- function(data, ylim = c(0, 1), color.theme = "viridis", track.
   #               lwd = lwd,
   #               lty = lty)
   # }
-  for (i in 1:nrow(data)) {
+  for (i in seq_len(nrow(data))) {
     circos.link(data[i, 1], data[i, 2], data[i, 4], data[i, 5],
       col = as.character(colorkey[i]),
       lwd = lwd,

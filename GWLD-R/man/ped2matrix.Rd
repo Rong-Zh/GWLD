@@ -4,12 +4,17 @@
 \alias{ped2matrix}
 \title{plink format(.ped, .map) to  matrix}
 \usage{
-ped2matrix(FilePrefix, ...)
+ped2matrix(FilePrefix, genotype = c("int", "char"), ...)
 }
 \arguments{
 \item{FilePrefix}{plink format(.ped, .map) file prefix}
 
+\item{genotype}{"int" (default) for an integer 0/1/2/NA matrix, or "char" for allele strings.}
+
 \item{...}{NULL}
+}
+\details{
+Integer output counts non-major alleles directly from the PED allele columns without constructing intermediate genotype strings. Missing alleles (0) produce NA. Frequency ties use lexical allele order. The returned list contains Info and Genotype, like bed2matrix and vcf2matrix. To obtain allele strings, explicitly request genotype = "char".
 }
 \description{
 plink format(.ped, .map) to  matrix

@@ -12,4 +12,8 @@ CXX_STD = CXX11
 
 PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -DARMA_64BIT_WORD=1
 PKG_CPPFLAGS = $(shell "${R_HOME}/bin${R_ARCH_BIN}/Rscript" --vanilla -e 'Rhtslib::pkgconfig("PKG_CPPFLAGS")')
+ifeq ($(shell uname -s),Darwin)
+# Expose Darwin's thread-safe lgamma_r used by the shared RMI kernel.
+PKG_CPPFLAGS += -D_REENTRANT
+endif
 PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(shell "${R_HOME}/bin${R_ARCH_BIN}/Rscript" --vanilla -e 'Rhtslib::pkgconfig("PKG_LIBS")') $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
