@@ -218,6 +218,8 @@ python3 GWLD-R/tests/interrupt_test.py
 
 R test fixtures are included in the source package, so package checks do not depend on the repository's working directory. Individual scripts in `GWLD-R/tests` can also be run from the repository root. Set `GWLD_TEST_OPENMP=OFF` when testing a serial build. Cross-interface VCF checks can additionally use `GWLD_TEST_CLI` and `GWLD_TEST_VCF_CONVERTER`; see [the test instructions](GWLD-C++/README.md#tests).
 
+An additional [independent LD accuracy check](tests/ld/README.md) reconstructs genotype counts in base R, compares every stationary/boundary candidate and checks a separate grid-refined search. It includes the maximum-difference pairs, a wrong-mode counterexample and tied solutions.
+
 The latest macOS verification on 2026-11-07 passed R CMD check with **zero errors, warnings or notes**, all five CTest groups in both OpenMP and serial builds, all six R scripts in a serial build, the full example, native interruption checks and address/undefined-behavior checks. An additional stress run covered 100,000 likelihood cases.
 
 For a runnable adaptation of Box 1 and numerical cross-checks from the [2023 GWLD paper](https://pmc.ncbi.nlm.nih.gov/articles/PMC10468308/):

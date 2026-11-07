@@ -173,6 +173,8 @@ GWLD_TEST_VCF_CONVERTER="$PWD/build/gwld_vcf_fixture" \
 Rscript GWLD-R/tests/vcf.R
 ```
 
+When benchmarks and Rscript are available, `ld_independent` additionally checks the production optimizer against a base-R stationary-point and grid-refinement oracle; see [its mathematical rationale and evidence](../tests/ld/README.md).
+
 The fixture converter creates BGZF VCF and BCF inputs for the same R-reader assertions. A separate serial build can be checked with `-DGWLD_OPENMP=OFF` in a fresh build directory.
 
 ## Benchmarks

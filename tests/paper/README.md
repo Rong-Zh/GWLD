@@ -70,4 +70,4 @@ The script also writes a Pearson correlation matrix for MI/RMI/r² and three hea
 
 The complete duck dataset in the paper has 542 samples and 40,601 SNPs. This script uses a packaged subset and does not attempt to reproduce the exact correlations in supplementary Table S1. It does not run PLINK, TASSEL or the full human, pig and maize datasets, and it is not a reproduction of all paper results or paper benchmarks.
 
-On 2026-11-07, macOS arm64, R 4.6.1 and the locally installed GWLD 2.0.0 passed all five numerical checks, parallel checks and both pair-extraction paths. Maximum absolute errors were approximately `4.15e-15` for MI, `7.88e-15` for RMI, `3.70e-4` for r², `7.64e-5` for D and `6.48e-4` for D′.
+On 2026-11-07, macOS arm64, R 4.6.1 and the locally installed GWLD 2.0.0 passed all five numerical checks, parallel checks and both pair-extraction paths. Maximum absolute errors were approximately `7.33e-15` for MI, `7.88e-15` for RMI, `3.70e-4` for r², `7.64e-5` for D and `6.48e-4` for D′.

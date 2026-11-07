@@ -44,6 +44,7 @@
 - Record direct comparisons against the pre-rewrite 1.x implementation, rather than multiplying intermediate speedups.
 - Include R workflow fixtures in the source package for independent package checks.
 - Add numerical, SIMD, utility, streaming, identity, legend and interruption regressions.
+- Add an independent base-R LD optimizer oracle, raw genotype export, all stationary/boundary candidate checks and grid-refined checks, with 37 recorded cases including ambiguous signs.
 - Add a documented runnable adaptation of the 2023 paper example with independent MI/RMI and LD checks.
 
 Benchmark conditions and measurements are in [docs/performance.md](docs/performance.md). The AVX-512 path still requires execution on supporting hardware.

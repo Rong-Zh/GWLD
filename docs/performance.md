@@ -105,4 +105,6 @@ Full matrices remain O(variants²) in storage and pair count. Pair-only decay ou
 
 Native ARM64 NEON, scalar fallbacks, macOS x86_64 POPCNT and x86 AVX2 under QEMU have correctness checks. AVX-512 functions compile with GCC and Clang but have not yet run on supporting hardware. QEMU timings are not used for performance claims. These measurements therefore do not quantify Intel/AMD SIMD acceleration.
 
+For a reproducible explanation of the LD differences, see [independent optimizer verification](../tests/ld/README.md). It includes raw genotype export, a base-R likelihood oracle and recorded per-case evidence.
+
 For numerical and workflow checks, use CTest, R CMD check, [the paper validation script](../tests/paper/README.md) and the optional R interruption test. The latest recorded review passed both OpenMP/serial C++ configurations, serial R regressions, the full R example, native interruption checks and address/undefined-behavior checks. No tests can establish the absence of every possible defect; the benchmark reports the comparisons it actually performs.
