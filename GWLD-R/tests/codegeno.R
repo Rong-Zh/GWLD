@@ -50,3 +50,12 @@ near(codegeno(matrix(NA_character_,5,2),"/"),matrix(NA_integer_,5,2))
 for (bad in c("A","A/G/T","A//","/A","A/","AAA")) fails(recode(bad,"/"))
 fails(recode("AAA",""))
 cat("Genotype encoding, allele-frequency, missing-value and empty-matrix tests passed\n")
+
+# Force hash-table growth and then reuse it across unrelated matrix columns.
+many <- c(paste0("allele", 1:96, "/allele", 96:1), NA_character_, "allele1/.")
+check(many, "/|")
+expanded <- matrix(rep(many, 3), ncol = 3)
+expanded[, 2] <- rep(c("A/A", "A/G", "G/G", NA_character_), length.out = nrow(expanded))
+expected <- vapply(seq_len(ncol(expanded)), function(j) reference(expanded[, j], "/|")$code, integer(nrow(expanded)))
+near(GWLD:::code_Mat(expanded, "/|"), expected)
+cat("Many-allele hash growth and matrix-column reuse passed\n")

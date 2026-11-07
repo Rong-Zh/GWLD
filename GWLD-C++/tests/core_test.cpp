@@ -45,6 +45,22 @@ int main() {
             near(evaluate(a,b,GWLD::Method::MI),reference(a,b,false));
             near(evaluate(a,b,GWLD::Method::RMI),reference(a,b,true));
         }
+        // Cached integer/half-integer logs must preserve all 1/2/3-category cases,
+        // including categories present only outside the complete-pair table.
+        std::vector<double> factorials(1025),half_logs(2058);
+        for (unsigned i=0;i<factorials.size();++i) factorials[i]=GWLD::log_gamma(i+1.0);
+        for (unsigned i=1;i<half_logs.size();++i) half_logs[i]=std::log(0.5*i);
+        for (unsigned r=1;r<=3;++r) for (unsigned s=1;s<=3;++s) for (unsigned trial=0;trial<100;++trial) {
+            GWLD::Counts table; GWLD::Summary row,column;
+            for (unsigned i=0;i<r;++i) row.present[i]=true;
+            for (unsigned j=0;j<s;++j) column.present[j]=true;
+            for (unsigned i=0;i<r;++i) for (unsigned j=0;j<s;++j) {
+                const double value=random()%3 ? random()%100 : 0;
+                table.cells[3*i+j]=value; table.rows[i]+=value; table.cols[j]+=value; table.n+=value;
+            }
+            near(GWLD::information(table,row,column,true),
+                 GWLD::information(table,row,column,true,factorials.data(),nullptr,half_logs.data()),1e-12);
+        }
         const std::vector<int> a={0,0,1,1,2,2},b={2,2,1,1,0,0},missing(6,-1),mono(6,0);
         near(evaluate(a,a,GWLD::Method::R2),1);
         near(evaluate(a,b,GWLD::Method::R2),1);
@@ -54,6 +70,15 @@ int main() {
         require(std::isnan(evaluate(a,missing,GWLD::Method::RMI)),"All-missing RMI must be missing");
         require(std::isnan(evaluate(a,mono,GWLD::Method::R2)),"Monomorphic r2 must be missing");
         near(evaluate(a,mono,GWLD::Method::D),0);
+        // Heterozygote-heavy data can have two internal likelihood maxima.
+        const int multimodal[3][3]={{0,2,0},{2,262,5},{2,5,2}};
+        std::vector<int> mx,my;
+        for (int i=0;i<3;++i) for (int j=0;j<3;++j)
+            for (int k=0;k<multimodal[i][j];++k) {mx.push_back(i);my.push_back(j);}
+        const double mle=evaluate(mx,my,GWLD::Method::D);
+        near(mle,-0.23361366206657,1e-8);
+        for (auto& x:mx) x=2-x;
+        near(evaluate(mx,my,GWLD::Method::D),-mle,1e-10);
         // Check the haplotype MLE against an independent dense likelihood grid.
         // Use complete data here so the feasible marginals are unambiguous.
         for (int trial=0;trial<40;++trial) {
@@ -87,6 +112,32 @@ int main() {
             near(D,best-p*q,1e-4);
             near(evaluate(x,y,GWLD::Method::R2),D*D/(p*q*(1-p)*(1-q)),1e-12);
         }
+        // Independent likelihood grids for sparse tables and near-ambiguous modes.
+        for (int trial=0;trial<100;++trial) {
+            int table[3][3]={};
+            std::vector<int> x,y;
+            for (int i=0;i<3;++i) for (int j=0;j<3;++j) {
+                table[i][j]=i==1 && j==1 ? 20+random()%281 : random()%6;
+                for (int k=0;k<table[i][j];++k) {x.push_back(i);y.push_back(j);}
+            }
+            const double p=GWLD::summarize(x.data(),x.size()).p,q=GWLD::summarize(y.data(),y.size()).p;
+            const double lo=std::max(0.0,p+q-1),hi=std::min(p,q);
+            const auto likelihood=[&](double h) {
+                const double probability[3][3]={{h*h,2*h*(p-h),(p-h)*(p-h)},
+                    {2*h*(q-h),2*(h*(1-p-q+h)+(p-h)*(q-h)),2*(p-h)*(1-p-q+h)},
+                    {(q-h)*(q-h),2*(q-h)*(1-p-q+h),(1-p-q+h)*(1-p-q+h)}};
+                double score=0;
+                for (int i=0;i<3;++i) for (int j=0;j<3;++j) if (table[i][j]) {
+                    if (probability[i][j]<=0) return -std::numeric_limits<double>::infinity();
+                    score+=table[i][j]*std::log(probability[i][j]);
+                }
+                return score;
+            };
+            double grid=-std::numeric_limits<double>::infinity();
+            for (int k=0;k<=20000;++k) grid=std::max(grid,likelihood(lo+(hi-lo)*k/20000));
+            const auto D=evaluate(x,y,GWLD::Method::D);
+            require(likelihood(D+p*q)>=grid-1e-8,"Missed a higher likelihood mode");
+        }
         std::vector<int> na(6,std::numeric_limits<int>::min());
         require(std::isnan(evaluate(a,na,GWLD::Method::MI)),"R NA must be excluded");
         bool failed=false; try { int bad=3; GWLD::summarize(&bad,1); } catch(const std::invalid_argument&) {failed=true;}
@@ -95,6 +146,12 @@ int main() {
         const GWLD::Window window(sites);
         require(window.partners(0,sites[0],1000)==std::vector<std::size_t>({2,4}),"Unsorted window or duplicate position failed");
         require(window.partners(0,sites[0],0)==std::vector<std::size_t>({4}),"Zero-distance window failed");
+        require(GWLD::position("5000000000")==5000000000LL,"Large position parsing failed");
+        for (const auto* value : {"4611686018427387904", "9223372036854775808", "-1", "1.5", "nan"}) {
+            bool rejected=false;
+            try { GWLD::position(value); } catch (const std::exception&) { rejected=true; }
+            require(rejected,"Invalid or unsafe position accepted");
+        }
         require(GWLD::parse_method("r2")==GWLD::parse_method("r^2"),"r2 alias failed");
         std::cout<<"Core numerical and window tests passed\n";
     } catch(const std::exception& error) {std::cerr<<error.what()<<'\n'; return 1;}

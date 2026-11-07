@@ -1,19 +1,16 @@
+# RcppArmadillo and the portable formatting paths use modern C++.
+CXX_STD = CXX17
 
-## With R 3.1.0 or later, you can uncomment the following line to tell R to 
-## enable compilation with C++11 (where available)
-##
-## Also, OpenMP support in Armadillo prefers C++11 support. However, for wider
-## availability of the package we do not yet enforce this here.  It is however
-## recommended for client packages to set it.
-##
-## And with R 3.4.0, and RcppArmadillo 0.7.960.*, we turn C++11 on as OpenMP
-## support within Armadillo prefers / requires it
-CXX_STD = CXX11
+GWLD_OPENMP_FLAGS = $(SHLIB_OPENMP_CXXFLAGS)
+ifeq ($(GWLD_OPENMP),OFF)
+GWLD_OPENMP_FLAGS =
+PKG_CPPFLAGS += -DGWLD_NO_OPENMP -DARMA_DONT_USE_OPENMP
+endif
 
-PKG_CXXFLAGS = $(SHLIB_OPENMP_CXXFLAGS) -DARMA_64BIT_WORD=1
-PKG_CPPFLAGS = $(shell "${R_HOME}/bin${R_ARCH_BIN}/Rscript" --vanilla -e 'Rhtslib::pkgconfig("PKG_CPPFLAGS")')
+PKG_CXXFLAGS = $(GWLD_OPENMP_FLAGS) -DARMA_64BIT_WORD=1
+PKG_CPPFLAGS += $(shell "${R_HOME}/bin${R_ARCH_BIN}/Rscript" --vanilla -e 'Rhtslib::pkgconfig("PKG_CPPFLAGS")')
 ifeq ($(shell uname -s),Darwin)
 # Expose Darwin's thread-safe lgamma_r used by the shared RMI kernel.
 PKG_CPPFLAGS += -D_REENTRANT
 endif
-PKG_LIBS = $(SHLIB_OPENMP_CXXFLAGS) $(shell "${R_HOME}/bin${R_ARCH_BIN}/Rscript" --vanilla -e 'Rhtslib::pkgconfig("PKG_LIBS")') $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)
+PKG_LIBS = $(GWLD_OPENMP_FLAGS) $(shell "${R_HOME}/bin${R_ARCH_BIN}/Rscript" --vanilla -e 'Rhtslib::pkgconfig("PKG_LIBS")') $(LAPACK_LIBS) $(BLAS_LIBS) $(FLIBS)

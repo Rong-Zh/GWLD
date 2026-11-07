@@ -3,29 +3,51 @@
 #include <fstream>
 #include <sstream>
 #include <array>
+#include <set>
 #include "gwld/vcf.hpp"
 
 namespace GWLD {
+inline std::string sample_component(const std::string& value) {
+    std::string encoded;
+    for (char c:value) {
+        if (c=='%') encoded+="%25";
+        else if (c==':') encoded+="%3A";
+        else encoded+=c;
+    }
+    return encoded;
+}
+inline void add_sample(Dataset& data,std::set<std::string>& names,const std::vector<std::string>& row) {
+    const auto id=sample_component(row[0])+":"+sample_component(row[1]);
+    if (!names.insert(id).second) throw std::runtime_error("Duplicate PLINK family/individual IDs: "+id);
+    data.samples.push_back(id);
+}
 inline std::ifstream input(const std::string& path, bool binary=false) {
     std::ifstream stream(path,binary ? std::ios::in|std::ios::binary : std::ios::in);
     if (!stream) throw std::runtime_error("Cannot open input: "+path);
     return stream;
 }
 inline std::vector<std::string> fields(const std::string& line) {
-    std::istringstream stream(line);
-    std::vector<std::string> result;
-    std::string word;
-    while (stream>>word) result.push_back(word);
+    const auto whitespace=[](char ch) { return ch==' ' || ch=='\t' || ch=='\r' || ch=='\n' || ch=='\f' || ch=='\v'; };
+    std::vector<std::string> result; result.reserve(8);
+    std::size_t position=0;
+    while (position<line.size()) {
+        while (position<line.size() && whitespace(line[position])) ++position;
+        const auto start=position;
+        while (position<line.size() && !whitespace(line[position])) ++position;
+        if (start<position) result.emplace_back(line,start,position-start);
+    }
     return result;
 }
+
 inline Dataset load_bed(const std::string& prefix) {
     Dataset data;
+    std::set<std::string> names;
     auto fam=input(prefix+".fam"), bim=input(prefix+".bim");
     std::string line;
     while (std::getline(fam,line)) {
         auto row=fields(line); if (row.empty()) continue;
         if (row.size()!=6) throw std::runtime_error("FAM requires six fields");
-        data.samples.push_back(row[1]);
+        add_sample(data,names,row);
     }
     while (std::getline(bim,line)) {
         auto row=fields(line); if (row.empty()) continue;
@@ -54,6 +76,7 @@ inline Dataset load_bed(const std::string& prefix) {
 }
 inline Dataset load_ped(const std::string& prefix) {
     Dataset data;
+    std::set<std::string> names;
     auto map=input(prefix+".map"), ped=input(prefix+".ped");
     std::string line;
     while (std::getline(map,line)) {
@@ -65,7 +88,7 @@ inline Dataset load_ped(const std::string& prefix) {
     while (std::getline(ped,line)) {
         auto row=fields(line); if (row.empty()) continue;
         if (row.size()!=6+2*data.sites.size()) throw std::runtime_error("PED/MAP dimensions do not match");
-        data.samples.push_back(row[1]); rows.push_back(std::move(row));
+        add_sample(data,names,row); rows.push_back(std::move(row));
     }
     if (data.sites.empty() || rows.empty()) throw std::runtime_error("Empty PED/MAP");
     data.genotypes.set_size(rows.size(),data.sites.size());
@@ -90,7 +113,7 @@ inline std::ofstream output(const std::string& path) {
     std::ofstream stream(path);
     if (!stream) throw std::runtime_error("Cannot create output: "+path);
     stream.exceptions(std::ios::badbit|std::ios::failbit);
-    stream.precision(12);
+    stream.precision(std::numeric_limits<double>::max_digits10);
     return stream;
 }
 inline void write_vcf(const Dataset& data,const std::string& path) {

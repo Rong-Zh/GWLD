@@ -146,5 +146,40 @@ class CLI(unittest.TestCase):
             (self.root/'bad.bed').write_bytes(data)
             self.run_cli('calculate', '--bed-prefix', self.root/'bad', success=False)
 
+    def test_sample_identity_roundtrip(self):
+        prefix = self.root/'families'
+        samples = ['f1 sample 0 0 1 -9', 'f2 sample 0 0 1 -9', 'f:3 sample% 0 0 1 -9']
+        prefix.with_suffix('.fam').write_text('\n'.join(samples)+'\n')
+        prefix.with_suffix('.bim').write_text('1 a 0 10 G A\n')
+        prefix.with_suffix('.bed').write_bytes(bytes([0x6c, 0x1b, 0x01, 35]))
+        prefix.with_suffix('.map').write_text('1 a 0 10\n')
+        prefix.with_suffix('.ped').write_text('\n'.join(s+' '+g for s,g in zip(samples,['A A','G G','A G']))+'\n')
+        for flag in ['--bed-prefix','--ped-prefix']:
+            self.run_cli('convert', flag, prefix, '--format', 'vcf', '-o', 'identity')
+            header = (self.root/'identity.vcf').read_text().splitlines()[2]
+            self.assertEqual(header.split('\t')[9:], ['f1:sample','f2:sample','f%3A3:sample%25'])
+            self.run_cli('convert', flag, prefix, '--format', 'dosage', '-o', 'before')
+            self.run_cli('convert', '--vcf', self.root/'identity.vcf', '--format', 'dosage', '-o', 'after')
+            self.assertEqual((self.root/'before.dosage.tsv').read_text(), (self.root/'after.dosage.tsv').read_text())
+        prefix.with_suffix('.fam').write_text(samples[0]+'\n'+samples[0]+'\n'+samples[2]+'\n')
+        prefix.with_suffix('.ped').write_text(samples[0]+' A A\n'+samples[0]+' G G\n'+samples[2]+' A G\n')
+        for flag in ['--bed-prefix','--ped-prefix']:
+            self.run_cli('convert', flag, prefix, '--format', 'vcf', success=False)
+
+    def test_multimodal_likelihood(self):
+        table = [[0,2,0],[2,262,5],[2,5,2]]
+        pairs = [(i,j) for i in range(3) for j in range(3) for _ in range(table[i][j])]
+        header = ('##fileformat=VCFv4.2\n##contig=<ID=1,length=1000>\n'
+                  '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">\n'
+                  '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\t')
+        lines = [header+'\t'.join(f's{i}' for i in range(len(pairs)))]
+        genotypes = ['0/0','0/1','1/1']
+        for locus in range(2):
+            lines.append(f'1\t{locus+1}\tv{locus}\tA\tG\t.\t.\t.\tGT\t'+'\t'.join(genotypes[p[locus]] for p in pairs))
+        self.vcf.write_text('\n'.join(lines)+'\n')
+        self.run_cli('calculate','--vcf',self.vcf,'--method','d')
+        value = float((self.root/'gwld.heatmap').read_text().splitlines()[0].split()[1])
+        self.assertAlmostEqual(value,-0.23361366206657,places=8)
+
 if __name__ == '__main__':
     unittest.main()

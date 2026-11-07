@@ -2,7 +2,7 @@
 MakeImageRect <- function(nrow, ncol, cols, name, byrow = TRUE, rectlwd = NULL, rectcol = NA) {
   xx <- (1:ncol) / ncol
   yy <- (1:nrow) / nrow
-  # 创建坐标对，重复列号(如果 byrow = TRUE)或行号(如果 byrow = FALSE)以强制该类型的填充
+  # Create coordinate pairs, repeating columns for row-wise filling or rows for column-wise filling.
   if (byrow) {
     right <- rep(xx, nrow)
     top <- rep(yy, each = ncol)
@@ -10,7 +10,7 @@ MakeImageRect <- function(nrow, ncol, cols, name, byrow = TRUE, rectlwd = NULL, 
     right <- rep(xx, each = nrow)
     top <- rep(yy, ncol)
   }
-  # 设置矩形框的颜色为NA
+  # Use NA for the rectangle border color.
   # rectcol <- NA
   rectGrob(
     x = right, y = top,
@@ -27,7 +27,7 @@ MakeImageText <- function(nrow, ncol, cols, name, flip = FALSE, family = family)
   xx <- (1:ncol) / ncol
   yy <- (1:nrow) / nrow
 
-  # 需要以不同的顺序填充单元格，就像生成图像一样
+  # Fill cells in the order used to construct the image.
   if (flip) {
     right <- rep(xx, each = nrow)
     top <- rep(yy, ncol)
@@ -44,7 +44,7 @@ MakeImageText <- function(nrow, ncol, cols, name, flip = FALSE, family = family)
 
 HeatmapLegend <- function(x, y, legend.colors, legend.title, breaks, n.breaks,
                           labels, legend.family) {
-  # 归一化到0,1
+  # Normalize to the range [0, 1].
   labels_pos <- seq(0, 1, length.out = n.breaks)
   legend_breaks <- seq(breaks[1], breaks[2], length.out = n.breaks + 1)
   pos <- labels_pos[cut(labels, legend_breaks, labels = FALSE, right = TRUE, include.lowest = T)]
@@ -90,28 +90,30 @@ HeatmapLabels <- function(LDmatrix, pos, name, vp, label.size = label.size, fami
     -0.5 * geneMapLocation + 1 / (nsnps * 2),
     1 - 0.5 * geneMapLocation - 1 / (nsnps * 2)
   )
-  ## 设置距离
+  ## Set the SNP positions and spacing.
   if (is.null(pos)) {
-    pos <- 1:nsnps ## 为数值
+    pos <- 1:nsnps ## Use numeric positions.
     total.dist <- max(pos) - min(pos)
     min.dist <- min(pos)
-    regionx <- seq.x[1] + ((pos - min.dist) / total.dist) * (seq.x[2] - seq.x[1])
-    regiony <- seq.y[1] + ((pos - min.dist) / total.dist) * (seq.y[2] - seq.y[1])
+    fraction <- if (total.dist == 0) rep(0.5, nsnps) else (pos - min.dist) / total.dist
+    regionx <- seq.x[1] + fraction * (seq.x[2] - seq.x[1])
+    regiony <- seq.y[1] + fraction * (seq.y[2] - seq.y[1])
     diagonal <- NULL
     segments <- NULL
   } else {
-    ### 直线段
+    ### Draw the physical-position axis.
     diagonal <- linesGrob(seq.x, seq.y, gp = gpar(lty = 1), name = "diagonal", vp = vp)
-    ### 斜线段
+    ### Connect matrix positions to physical positions.
     total.dist <- max(pos) - min(pos)
     min.dist <- min(pos)
-    regionx <- seq.x[1] + ((pos - min.dist) / total.dist) * (seq.x[2] - seq.x[1])
-    regiony <- seq.y[1] + ((pos - min.dist) / total.dist) * (seq.y[2] - seq.y[1])
+    fraction <- if (total.dist == 0) rep(0.5, nsnps) else (pos - min.dist) / total.dist
+    regionx <- seq.x[1] + fraction * (seq.x[2] - seq.x[1])
+    regiony <- seq.y[1] + fraction * (seq.y[2] - seq.y[1])
     segments <- segmentsGrob(snp, snp, regionx, regiony, name = "segments", vp = vp)
   }
-  ## 设置SNP名
+  ## Set the SNP labels.
   if (!is.null(segments) & is.null(name)) {
-    ### 点的位置和符号,符号大小得微调
+    ### Set marker positions and symbols, adjusting their size for the SNP count.
     symbols_pch <- pointsGrob(snp[1:nsnps], snp[1:nsnps],
       pch = "*",
       gp = gpar(cex = -0.02 * nsnps + 2, bg = "blue", col = "blue"),
@@ -119,16 +121,16 @@ HeatmapLabels <- function(LDmatrix, pos, name, vp, label.size = label.size, fami
     )
     SNPnames <- NULL
   } else if (!is.null(name)) {
-    ## 宽度转换
+    ## Convert the label gap to viewport coordinates.
     name_gap <- convertWidth(grobWidth(textGrob("r")), "npc", valueOnly = TRUE) / sqrt(2)
-    ind <- match(name, row.names(LDmatrix), nomatch = 0)
-    # 点的位置和符号
+    ind <- seq_len(nsnps)
+    # Set marker positions and symbols.
     symbols_pch <- pointsGrob(snp[ind], snp[ind],
       pch = "*",
       gp = gpar(cex = -0.02 * nsnps + 2, bg = "blue", col = "blue"),
       name = "symbols_pch", vp = vp
     )
-    # 距离检测(避免SNP字体重叠并更新ind, 让重叠的名字不显示)
+    # Keep labels far enough apart to avoid overlap and update the visible indices.
     min_dist <- convertHeight(grobHeight(textGrob("rs", gp = gpar(fontsize = label.size))), "npc", valueOnly = TRUE) * 1.1
     if (length(ind) >= 2) {
       start <- ind[1]
@@ -141,7 +143,7 @@ HeatmapLabels <- function(LDmatrix, pos, name, vp, label.size = label.size, fami
       }
       ind <- res
     }
-    ## 如果绘图窗口太小,字体会出界
+    ## Labels may extend beyond the plot when the device is too small.
     SNPnames <- textGrob(name[ind],
       just = c("left", "bottom"), rot = 90,
       regionx[ind] - sqrt(2 + 0.5) * name_gap,

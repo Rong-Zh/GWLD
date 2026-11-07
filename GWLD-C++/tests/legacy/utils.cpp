@@ -1,202 +1,203 @@
-#include <iostream>
-#include <fstream>
-#include <sstream>
-#include <armadillo>
-#include <vector>
-#include <string>
-#include <map>
+#include "utils.h"
+#include "gwld/core.hpp"
+#include <array>
 #include <algorithm>
+#include <cmath>
+#include <sstream>
+#include <cstdint>
+#include <fstream>
+#include <limits>
+#include <locale>
+#include <stdexcept>
+#include <unordered_map>
 
-using namespace std;
-using namespace arma;
+// Keep C++11 compatibility; use allocation-free numeric formatting with recent libraries.
+#if __cplusplus >= 201703L && ((defined(_GLIBCXX_RELEASE) && _GLIBCXX_RELEASE >= 11) || \
+    (defined(_LIBCPP_VERSION) && _LIBCPP_VERSION >= 170000 && \
+     (!defined(__APPLE__) || __ENVIRONMENT_MAC_OS_X_VERSION_MIN_REQUIRED__ >= 140000)))
+#include <charconv>
+#define GWLD_UTILS_CHARCONV 1
+#endif
 
-vector<char> is_any_of(string str) {
-    vector<char> res;
-    for (auto s : str)
-        res.push_back(s);
-    return res;
-}
-
-void split(vector<string>& result, string str, vector<char> delimiters) {
-    auto start = 0;
-    while (start < str.size())
-    {
-        //根据多个分割符分割
-        auto itRes = str.find(delimiters[0], start);
-        for (int i = 1; i < delimiters.size(); ++i)
-        {
-            auto it = str.find(delimiters[i],start);
-            if (it < itRes)
-                itRes = it;
-        }
-        if (itRes == string::npos)
-        {
-            result.push_back(str.substr(start, str.size() - start));
-            break;
-        }
-        result.push_back(str.substr(start, itRes - start));
-        start = itRes;
-        ++start;
+namespace {
+class Writer {
+    std::vector<char> file_buffer;
+    std::ofstream out;
+    std::string buffer;
+public:
+    explicit Writer(const std::string& path) : file_buffer(65536) {
+        out.rdbuf()->pubsetbuf(file_buffer.data(),file_buffer.size());
+        out.open(path);
+        if (!out) throw std::runtime_error("Cannot create output: "+path);
+        out.exceptions(std::ios::failbit|std::ios::badbit);
+        out.imbue(std::locale::classic());
+        buffer.reserve(1u<<20);
     }
-}
-
-vector<vector<string>> readfile(const string &filename, char sep) {// 分割符空格使用的' '而不是" ".
-
-    ifstream inFile;
-    inFile.open(filename, ios::in);
-    if (!inFile.is_open())
-	{
-		std::cerr << filename <<" 读取文件失败" << endl;
-        exit(1);
-	}
-    //放入数组中
-    string str_line;
-	vector<vector<string>> str_array;
-    while (getline(inFile, str_line)) {
-        stringstream ss(str_line);
-        string str;
-        vector<string> line_array;
-        while (getline(ss, str, sep)) {// ped 使用空格分割的
-            line_array.push_back(str);
-        }
-        str_array.push_back(line_array);
+    void flush() {
+        if (!buffer.empty()) { out.write(buffer.data(),static_cast<std::streamsize>(buffer.size())); buffer.clear(); }
     }
-    inFile.close();
-
-    return str_array;
-}
-
-template <typename T> //只能为vector<vector<T>>
-void writefile(T &data, string &outfilename, char sep) {
-    int rows = data.size();
-    int cols = data.front().size();
-    ofstream outFile;
-    outFile.open(outfilename, ios::out);
-    if (outFile.is_open()){
-        for(int row=0;row<rows; row++) {
-            for(int col=0;col<cols; col++) {
-                outFile << data[row][col] << sep;
-            }
-            outFile <<"\n";// 换行符
-        }
-    } else {
-        std::cerr << outfilename <<" 创建文件失败" << endl;
-		return;
+    void value(const std::string& text) {
+        if (buffer.size()+text.size()>(1u<<20)) flush();
+        if (text.size()>(1u<<20)) out.write(text.data(),static_cast<std::streamsize>(text.size()));
+        else buffer.append(text);
     }
-    outFile.close();
-}
-template void writefile(vector<vector<string>> &data, string &outfilename, char sep);
-template void writefile(vector<vector<double>> &data, string &outfilename, char sep);
-
-
-void writearma(arma::Mat<double> &data, string &outfilename, char sep) {
-    int rows = data.n_rows;
-    int cols = data.n_cols;
-    ofstream outFile;
-    outFile.open(outfilename, ios::out);
-    if (outFile.is_open()){
-        for(int row=0;row<rows; row++) {
-            for(int col=0;col<cols; col++) {
-                outFile << data(row, col) << sep;
-            }
-            outFile <<"\n";// 换行符
+    void value(double value) {
+        #if defined(GWLD_UTILS_CHARCONV)
+        if (std::isnan(value)) {
+            static const std::array<std::string,2> names=[]() {
+                std::array<std::string,2> result;
+                for (unsigned i=0;i<2;++i) {
+                    std::ostringstream stream; stream.imbue(std::locale::classic());
+                    stream<<(i ? -std::numeric_limits<double>::quiet_NaN() : std::numeric_limits<double>::quiet_NaN());
+                    result[i]=stream.str();
+                }
+                return result;
+            }();
+            buffer.append(names[std::signbit(value) ? 1:0]); return;
         }
-    } else {
-        std::cerr << outfilename <<" 创建文件失败" << endl;
-		return;
+        char text[64];
+        const auto result=std::to_chars(text,text+sizeof(text),value,std::chars_format::general,6);
+        if (result.ec!=std::errc()) throw std::runtime_error("Numeric formatting failed");
+        buffer.append(text,result.ptr);
+        #else
+        // Reuse the stream's formatter instead of constructing a stream per number.
+        flush(); out<<value;
+        #endif
     }
-    outFile.close();
+    void character(char ch) { buffer.push_back(ch); if (buffer.size()>=(1u<<20)) flush(); }
+    void row_end() { character('\n'); if (buffer.size()>=(1u<<20)) flush(); }
+    void close() { flush(); out.close(); }
+};
+std::array<double,3> frequencies(const int* values,arma::uword size) {
+    const auto summary=GWLD::summarize(values,size);
+    return {{summary.p,1-summary.p,size ? 1-summary.total/static_cast<double>(size) : std::numeric_limits<double>::quiet_NaN()}};
+}
 }
 
-bool cmp(pair<string,int> a, pair<string, int> b) {
-    return a.second > b.second; //从大到小排列
-}
-
-vector<pair<string,int>> counts_allele(vector<string> &allele) {
-    map<string, int> M;
-    for (int i = 0; i<allele.size(); i++) { 
-        if (M.find(allele[i]) == M.end()) {
-            M[allele[i]] = 1;
-        }
-        else {
-            M[allele[i]]++;
+std::vector<char> is_any_of(const std::string& str) { return {str.begin(),str.end()}; }
+void split(std::vector<std::string>& result,const std::string& str,const std::vector<char>& delimiters) {
+    // Preserve the old by-value behavior when the source is an output element.
+    if (!result.empty()) {
+        const auto address=reinterpret_cast<std::uintptr_t>(&str);
+        if (address>=reinterpret_cast<std::uintptr_t>(result.data()) &&
+            address<reinterpret_cast<std::uintptr_t>(result.data()+result.size())) {
+            const std::string saved=str;
+            split(result,saved,delimiters); return;
         }
     }
-    vector<pair<string,int>> sort_alleles(M.begin(), M.end());//从大到小排列
-    sort(sort_alleles.begin(), sort_alleles.end(), cmp);//等位基因至多3种,"0"表示缺失  
-    return sort_alleles;
+    bool mask[256]={};
+    for (unsigned char ch:delimiters) mask[ch]=true;
+    std::size_t start=0;
+    for (std::size_t i=0;i<str.size();++i) if (mask[static_cast<unsigned char>(str[i])]) {
+        result.emplace_back(str,start,i-start); start=i+1;
+    }
+    if (start<str.size()) result.emplace_back(str,start,str.size()-start);
 }
-
-vector<double> allele_freq(arma::Col<int> &g1) {
-    vector<double> stat(3, 0.0);
-    int len = g1.n_elem;//向量的长度
-    for(int i=0; i<len; i++) {
-        if(g1[i]!= -1) { // -1 表示缺失值
-            stat[g1[i]] += 1.0;
+std::vector<std::vector<std::string>> readfile(const std::string& filename,char sep) {
+    std::ifstream in(filename);
+    if (!in) throw std::runtime_error("Cannot open input: "+filename);
+    std::vector<std::vector<std::string>> result;
+    std::string line;
+    while (std::getline(in,line)) {
+        std::vector<std::string> row;
+        const auto fields=static_cast<std::size_t>(std::count(line.begin(),line.end(),sep))+
+            static_cast<std::size_t>(!line.empty() && line.back()!=sep);
+        row.reserve(fields);
+        std::size_t start=0;
+        while (start<line.size()) {
+            const auto end=line.find(sep,start);
+            row.emplace_back(line,start,end==std::string::npos ? line.size()-start : end-start);
+            if (end==std::string::npos) break;
+            start=end+1;
         }
+        result.push_back(std::move(row));
     }
-    double sum = stat[0] + stat[1] + stat[2];
-    double A1 = (stat[0]+0.5*stat[1])/sum;//major allele 
-    double A2 = 1.0 - A1;//minor allele
-    double NA = 1.0 - sum/len;//缺失率
-    stat[0] = A1;
-    stat[1] = A2;
-    stat[2] = NA;
-    return stat;
+    if (!in.eof()) throw std::runtime_error("Cannot read input: "+filename);
+    return result;
 }
-
-arma::Mat<double> table(arma::Col<int> &g1, arma::Col<int> &g2, int row, int col) {
-    arma::Mat<double> m(row, col, arma::fill::zeros);
-    int g1_len = g1.n_elem; //向量的长度
-    for(int i=0;i< g1_len; i++){
-            if(g1[i]!= -1 && g2[i]!= -1){
-                m(g1[i], g2[i]) +=1;
+template<class T> void writefile(const T& data,const std::string& filename,char sep) {
+    Writer out(filename);
+    for (const auto& row:data) {
+        for (const auto& value:row) { out.value(value); out.character(sep); }
+        out.row_end();
+    }
+    out.close();
+}
+template void writefile(const std::vector<std::vector<std::string>>&,const std::string&,char);
+template void writefile(const std::vector<std::vector<double>>&,const std::string&,char);
+void writearma(const arma::Mat<double>& data,const std::string& filename,char sep) {
+    Writer out(filename);
+    for (arma::uword row=0;row<data.n_rows;++row) {
+        for (arma::uword col=0;col<data.n_cols;++col) { out.value(data(row,col)); out.character(sep); }
+        out.row_end();
+    }
+    out.close();
+}
+bool cmp(const std::pair<std::string,int>& a,const std::pair<std::string,int>& b) {
+    return a.second!=b.second ? a.second>b.second : a.first<b.first;
+}
+std::vector<std::pair<std::string,int>> counts_allele(const std::vector<std::string>& alleles) {
+    if (alleles.empty()) return {};
+    std::unordered_map<std::string,std::size_t> counts;
+    counts.reserve(8);
+    for (const auto& allele:alleles) ++counts[allele];
+    std::vector<std::pair<std::string,int>> result; result.reserve(counts.size());
+    for (const auto& item:counts) {
+        if (item.second>static_cast<std::size_t>(std::numeric_limits<int>::max())) throw std::overflow_error("Allele count exceeds integer range");
+        result.emplace_back(item.first,static_cast<int>(item.second));
+    }
+    std::sort(result.begin(),result.end(),cmp);
+    return result;
+}
+std::vector<double> allele_freq(const arma::Col<int>& genotype) {
+    const auto result=frequencies(genotype.memptr(),genotype.n_elem);
+    return std::vector<double>(result.begin(),result.end());
+}
+arma::Mat<double> table(const arma::Col<int>& a,const arma::Col<int>& b,int rows,int cols) {
+    if (a.n_elem!=b.n_elem || rows<0 || cols<0) throw std::invalid_argument("Invalid contingency-table dimensions");
+    arma::Mat<double> result(rows,cols,arma::fill::zeros);
+    std::array<std::uint64_t,9> small{};
+    const bool fixed=rows==3 && cols==3;
+    for (arma::uword i=0;i<a.n_elem;++i) {
+        const int x=a[i],y=b[i];
+        if ((x<0 && x!=-1 && x!=std::numeric_limits<int>::min()) ||
+            (y<0 && y!=-1 && y!=std::numeric_limits<int>::min())) throw std::invalid_argument("Invalid genotype");
+        if (x>=rows || y>=cols) throw std::invalid_argument("Genotype exceeds contingency-table dimensions");
+        if (x<0 || y<0) continue;
+        if (fixed) ++small[x+3*y]; else ++result.memptr()[x+static_cast<arma::uword>(rows)*y];
+    }
+    if (fixed) for (unsigned i=0;i<9;++i) result[i]=static_cast<double>(small[i]);
+    return result;
+}
+std::vector<std::vector<double>> stats_freq(const arma::Mat<int>& genotypes) {
+    std::vector<std::vector<double>> result; result.reserve(genotypes.n_cols);
+    for (arma::uword j=0;j<genotypes.n_cols;++j) {
+        const auto values=frequencies(genotypes.colptr(j),genotypes.n_rows);
+        result.emplace_back(values.begin(),values.end());
+    }
+    return result;
+}
+std::vector<std::vector<std::string>> getsnpinfo(const std::vector<std::vector<std::string>>& data,const std::vector<int>& columns) {
+    std::vector<std::vector<std::string>> result; result.reserve(data.size());
+    for (const auto& row:data) {
+        std::vector<std::string> selected; selected.reserve(columns.size());
+        for (int column:columns) {
+            if (column<0 || static_cast<std::size_t>(column)>=row.size()) throw std::invalid_argument("SNP metadata column is out of range");
+            selected.push_back(row[column]);
         }
-    } 
-    return m;
-}
-
-vector<vector<double>> stats_freq(arma::Mat<int> &geno012){
-    int cols = geno012.n_cols;
-    vector<vector<double>> alleles_freq;
-    arma::Col<int> g1;
-    for(int l=0;l<cols;l++) {
-        g1 = geno012.col(l);
-        alleles_freq.push_back(allele_freq(g1));
+        result.push_back(std::move(selected));
     }
-    return alleles_freq;
+    return result;
 }
-
-vector<vector<string>> getsnpinfo(vector<vector<string>> &data, vector<int> &col) {
-    int rows = data.size();
-    int len = col.size();
-    vector<vector<string>> snpinfo;
-    vector<string> vec(3);//CHROM, POS, ID 
-    for (int row=0; row<rows; row++) { 
-        for (int l=0; l<len; l++) {
-            vec[l] = data[row][col[l]]; 
-        }
-        snpinfo.push_back(vec);
+std::vector<std::vector<std::string>> getchrinfo(const std::vector<std::vector<std::string>>& sites) {
+    std::vector<std::vector<std::string>> result;
+    std::size_t start=0;
+    while (start<sites.size()) {
+        if (sites[start].empty()) throw std::invalid_argument("Missing chromosome metadata");
+        std::size_t end=start+1;
+        while (end<sites.size() && !sites[end].empty() && sites[end][0]==sites[start][0]) ++end;
+        result.push_back({sites[start][0],std::to_string(start),std::to_string(end-1),std::to_string(end-start)});
+        start=end;
     }
-    return(snpinfo);
-}
-
-vector<vector<string>> getchrinfo(vector<vector<string>> &snpinfo) {
-    vector<vector<string>> chrinfo;  //染色体数, 以及该染色体上的SNP数
-    vector<string> chr(4);           //染色体号,起始索引,终止索引,染色体上的个数
-    int index=0, rows = snpinfo.size();
-    for(int i=0; i<rows; i++) {
-        if(snpinfo[index][0]==snpinfo[i][0] && i!=(rows-1)) {
-            continue;
-        } else {
-            if(i==(rows-1)) i++;
-            chr[0] = snpinfo[index][0];
-            chr[1] = to_string(index);
-            chr[2] = to_string(i - 1);
-            chr[3] = to_string(i - index);
-            chrinfo.push_back(chr);
-            index = i;  
-        }      
-    }
-    return chrinfo;
+    return result;
 }

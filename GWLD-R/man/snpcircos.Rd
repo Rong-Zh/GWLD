@@ -12,11 +12,12 @@ circos.ideogram(
   cex.lab = 0.6,
   bg.border = NA,
   family = NULL,
+  legend.space = 0,
   ...
 )
 }
 \arguments{
-\item{data}{Chromosome/position matrix or data.frame, or custom chromosome ranges.}
+\item{data}{chromosome/position matrix or data.frame, or custom chromosome ranges}
 
 \item{ylim}{Range of data on y-axis}
 
@@ -30,13 +31,16 @@ circos.ideogram(
 
 \item{family}{the name of a font family for drawing text}
 
+\item{legend.space}{Space reserved to the right of the circle, in circle-radius units; use zero when no legend is needed.}
+
 \item{...}{other graphical parameters}
 }
 \description{
 circos snp
 }
 \details{
-Numeric coordinate strings are converted internally. Chromosome names are preserved, including nonnumeric names.
+Numeric coordinate strings are converted internally; chromosome names
+are preserved, including nonnumeric names.
 }
 \examples{
 NULL

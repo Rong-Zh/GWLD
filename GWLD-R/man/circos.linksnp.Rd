@@ -10,7 +10,7 @@ circos.linksnp(
   color.theme = "viridis",
   track.height = 0.05,
   legend.show = TRUE,
-  legend.position = c(0.88, 0.75),
+  legend.position = NULL,
   legend.fontsize = 12,
   legend.limits = NULL,
   legend.breaks = NULL,
@@ -35,7 +35,7 @@ circos.linksnp(
 
 \item{legend.show}{logical whether to show the legend}
 
-\item{legend.position}{legend position}
+\item{legend.position}{NULL places the legend at the upper right of the circle; an explicit c(x, y) uses normalized device coordinates.}
 
 \item{legend.fontsize}{the font size of legend}
 
@@ -63,7 +63,8 @@ circos.linksnp(
 link snp
 }
 \details{
-Character matrices returned by circos or calc_circos can be passed directly. Coordinates and LD values are converted internally. Empty pair tables are accepted without drawing links.
+Character matrices returned by circos/calc_circos are accepted directly.
+Coordinates and LD values are converted internally; empty pair tables are accepted.
 }
 \examples{
 NULL

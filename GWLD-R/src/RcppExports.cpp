@@ -84,73 +84,73 @@ BEGIN_RCPP
 END_RCPP
 }
 // RMIC
-double RMIC(arma::Col<int>& g1, arma::Col<int>& g2);
+double RMIC(SEXP g1, SEXP g2);
 RcppExport SEXP _GWLD_RMIC(SEXP g1SEXP, SEXP g2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::Col<int>& >::type g1(g1SEXP);
-    Rcpp::traits::input_parameter< arma::Col<int>& >::type g2(g2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type g1(g1SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type g2(g2SEXP);
     rcpp_result_gen = Rcpp::wrap(RMIC(g1, g2));
     return rcpp_result_gen;
 END_RCPP
 }
 // RMIC_Mat
-arma::Mat<double> RMIC_Mat(arma::Mat<int>& geno012, int cores);
+arma::Mat<double> RMIC_Mat(SEXP geno012, int cores);
 RcppExport SEXP _GWLD_RMIC_Mat(SEXP geno012SEXP, SEXP coresSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::Mat<int>& >::type geno012(geno012SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type geno012(geno012SEXP);
     Rcpp::traits::input_parameter< int >::type cores(coresSEXP);
     rcpp_result_gen = Rcpp::wrap(RMIC_Mat(geno012, cores));
     return rcpp_result_gen;
 END_RCPP
 }
 // MIC
-double MIC(arma::Col<int>& g1, arma::Col<int>& g2);
+double MIC(SEXP g1, SEXP g2);
 RcppExport SEXP _GWLD_MIC(SEXP g1SEXP, SEXP g2SEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::Col<int>& >::type g1(g1SEXP);
-    Rcpp::traits::input_parameter< arma::Col<int>& >::type g2(g2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type g1(g1SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type g2(g2SEXP);
     rcpp_result_gen = Rcpp::wrap(MIC(g1, g2));
     return rcpp_result_gen;
 END_RCPP
 }
 // MIC_Mat
-arma::Mat<double> MIC_Mat(arma::Mat<int>& geno012, int cores);
+arma::Mat<double> MIC_Mat(SEXP geno012, int cores);
 RcppExport SEXP _GWLD_MIC_Mat(SEXP geno012SEXP, SEXP coresSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::Mat<int>& >::type geno012(geno012SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type geno012(geno012SEXP);
     Rcpp::traits::input_parameter< int >::type cores(coresSEXP);
     rcpp_result_gen = Rcpp::wrap(MIC_Mat(geno012, cores));
     return rcpp_result_gen;
 END_RCPP
 }
 // LDC
-double LDC(arma::Col<int>& g1, arma::Col<int>& g2, std::string method);
+double LDC(SEXP g1, SEXP g2, std::string method);
 RcppExport SEXP _GWLD_LDC(SEXP g1SEXP, SEXP g2SEXP, SEXP methodSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::Col<int>& >::type g1(g1SEXP);
-    Rcpp::traits::input_parameter< arma::Col<int>& >::type g2(g2SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type g1(g1SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type g2(g2SEXP);
     Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
     rcpp_result_gen = Rcpp::wrap(LDC(g1, g2, method));
     return rcpp_result_gen;
 END_RCPP
 }
 // LDC_Mat
-arma::Mat<double> LDC_Mat(arma::Mat<int>& geno012, std::string method, int cores);
+arma::Mat<double> LDC_Mat(SEXP geno012, std::string method, int cores);
 RcppExport SEXP _GWLD_LDC_Mat(SEXP geno012SEXP, SEXP methodSEXP, SEXP coresSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::Mat<int>& >::type geno012(geno012SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type geno012(geno012SEXP);
     Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type cores(coresSEXP);
     rcpp_result_gen = Rcpp::wrap(LDC_Mat(geno012, method, cores));
@@ -158,12 +158,12 @@ BEGIN_RCPP
 END_RCPP
 }
 // gwld
-arma::Mat<double> gwld(arma::Mat<int>& geno012, std::string method, int thread);
+arma::Mat<double> gwld(SEXP geno012, std::string method, int thread);
 RcppExport SEXP _GWLD_gwld(SEXP geno012SEXP, SEXP methodSEXP, SEXP threadSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::Mat<int>& >::type geno012(geno012SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type geno012(geno012SEXP);
     Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type thread(threadSEXP);
     rcpp_result_gen = Rcpp::wrap(gwld(geno012, method, thread));
@@ -171,58 +171,62 @@ BEGIN_RCPP
 END_RCPP
 }
 // decay
-Rcpp::CharacterMatrix decay(arma::Mat<double>& m, Rcpp::CharacterMatrix& snpinfo, int maxdist);
-RcppExport SEXP _GWLD_decay(SEXP mSEXP, SEXP snpinfoSEXP, SEXP maxdistSEXP) {
+Rcpp::RObject decay(arma::Mat<double>& m, Rcpp::CharacterMatrix& snpinfo, int maxdist, std::string outputfile);
+RcppExport SEXP _GWLD_decay(SEXP mSEXP, SEXP snpinfoSEXP, SEXP maxdistSEXP, SEXP outputfileSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::Mat<double>& >::type m(mSEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type snpinfo(snpinfoSEXP);
     Rcpp::traits::input_parameter< int >::type maxdist(maxdistSEXP);
-    rcpp_result_gen = Rcpp::wrap(decay(m, snpinfo, maxdist));
+    Rcpp::traits::input_parameter< std::string >::type outputfile(outputfileSEXP);
+    rcpp_result_gen = Rcpp::wrap(decay(m, snpinfo, maxdist, outputfile));
     return rcpp_result_gen;
 END_RCPP
 }
 // calc_decay
-Rcpp::CharacterMatrix calc_decay(arma::Mat<int>& geno012, Rcpp::CharacterMatrix& snpinfo, std::string method, int thread, int maxdist);
-RcppExport SEXP _GWLD_calc_decay(SEXP geno012SEXP, SEXP snpinfoSEXP, SEXP methodSEXP, SEXP threadSEXP, SEXP maxdistSEXP) {
+Rcpp::RObject calc_decay(SEXP geno012, Rcpp::CharacterMatrix& snpinfo, std::string method, int thread, int maxdist, std::string outputfile);
+RcppExport SEXP _GWLD_calc_decay(SEXP geno012SEXP, SEXP snpinfoSEXP, SEXP methodSEXP, SEXP threadSEXP, SEXP maxdistSEXP, SEXP outputfileSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::Mat<int>& >::type geno012(geno012SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type geno012(geno012SEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type snpinfo(snpinfoSEXP);
     Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type thread(threadSEXP);
     Rcpp::traits::input_parameter< int >::type maxdist(maxdistSEXP);
-    rcpp_result_gen = Rcpp::wrap(calc_decay(geno012, snpinfo, method, thread, maxdist));
+    Rcpp::traits::input_parameter< std::string >::type outputfile(outputfileSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_decay(geno012, snpinfo, method, thread, maxdist, outputfile));
     return rcpp_result_gen;
 END_RCPP
 }
 // calc_circos
-Rcpp::CharacterMatrix calc_circos(arma::Mat<int>& geno012, Rcpp::CharacterMatrix& snpinfo, std::string method, int thread, double threshold);
-RcppExport SEXP _GWLD_calc_circos(SEXP geno012SEXP, SEXP snpinfoSEXP, SEXP methodSEXP, SEXP threadSEXP, SEXP thresholdSEXP) {
+Rcpp::RObject calc_circos(SEXP geno012, Rcpp::CharacterMatrix& snpinfo, std::string method, int thread, double threshold, std::string outputfile);
+RcppExport SEXP _GWLD_calc_circos(SEXP geno012SEXP, SEXP snpinfoSEXP, SEXP methodSEXP, SEXP threadSEXP, SEXP thresholdSEXP, SEXP outputfileSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::Mat<int>& >::type geno012(geno012SEXP);
+    Rcpp::traits::input_parameter< SEXP >::type geno012(geno012SEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type snpinfo(snpinfoSEXP);
     Rcpp::traits::input_parameter< std::string >::type method(methodSEXP);
     Rcpp::traits::input_parameter< int >::type thread(threadSEXP);
     Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
-    rcpp_result_gen = Rcpp::wrap(calc_circos(geno012, snpinfo, method, thread, threshold));
+    Rcpp::traits::input_parameter< std::string >::type outputfile(outputfileSEXP);
+    rcpp_result_gen = Rcpp::wrap(calc_circos(geno012, snpinfo, method, thread, threshold, outputfile));
     return rcpp_result_gen;
 END_RCPP
 }
 // circos
-Rcpp::CharacterMatrix circos(arma::Mat<double>& m, Rcpp::CharacterMatrix& snpinfo, double threshold);
-RcppExport SEXP _GWLD_circos(SEXP mSEXP, SEXP snpinfoSEXP, SEXP thresholdSEXP) {
+Rcpp::RObject circos(arma::Mat<double>& m, Rcpp::CharacterMatrix& snpinfo, double threshold, std::string outputfile);
+RcppExport SEXP _GWLD_circos(SEXP mSEXP, SEXP snpinfoSEXP, SEXP thresholdSEXP, SEXP outputfileSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
     Rcpp::traits::input_parameter< arma::Mat<double>& >::type m(mSEXP);
     Rcpp::traits::input_parameter< Rcpp::CharacterMatrix& >::type snpinfo(snpinfoSEXP);
     Rcpp::traits::input_parameter< double >::type threshold(thresholdSEXP);
-    rcpp_result_gen = Rcpp::wrap(circos(m, snpinfo, threshold));
+    Rcpp::traits::input_parameter< std::string >::type outputfile(outputfileSEXP);
+    rcpp_result_gen = Rcpp::wrap(circos(m, snpinfo, threshold, outputfile));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -241,10 +245,10 @@ static const R_CallMethodDef CallEntries[] = {
     {"_GWLD_LDC", (DL_FUNC) &_GWLD_LDC, 3},
     {"_GWLD_LDC_Mat", (DL_FUNC) &_GWLD_LDC_Mat, 3},
     {"_GWLD_gwld", (DL_FUNC) &_GWLD_gwld, 3},
-    {"_GWLD_decay", (DL_FUNC) &_GWLD_decay, 3},
-    {"_GWLD_calc_decay", (DL_FUNC) &_GWLD_calc_decay, 5},
-    {"_GWLD_calc_circos", (DL_FUNC) &_GWLD_calc_circos, 5},
-    {"_GWLD_circos", (DL_FUNC) &_GWLD_circos, 3},
+    {"_GWLD_decay", (DL_FUNC) &_GWLD_decay, 4},
+    {"_GWLD_calc_decay", (DL_FUNC) &_GWLD_calc_decay, 6},
+    {"_GWLD_calc_circos", (DL_FUNC) &_GWLD_calc_circos, 6},
+    {"_GWLD_circos", (DL_FUNC) &_GWLD_circos, 4},
     {NULL, NULL, 0}
 };
 

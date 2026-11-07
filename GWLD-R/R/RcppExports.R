@@ -67,19 +67,19 @@ gwld <- function(geno012, method = "RMI", thread = 1L) {
     .Call(`_GWLD_gwld`, geno012, method, thread)
 }
 
-decay <- function(m, snpinfo, maxdist = 300L) {
-    .Call(`_GWLD_decay`, m, snpinfo, maxdist)
+decay <- function(m, snpinfo, maxdist = 300L, outputfile = "") {
+    .Call(`_GWLD_decay`, m, snpinfo, maxdist, outputfile)
 }
 
-calc_decay <- function(geno012, snpinfo, method = "RMI", thread = 1L, maxdist = 300L) {
-    .Call(`_GWLD_calc_decay`, geno012, snpinfo, method, thread, maxdist)
+calc_decay <- function(geno012, snpinfo, method = "RMI", thread = 1L, maxdist = 300L, outputfile = "") {
+    .Call(`_GWLD_calc_decay`, geno012, snpinfo, method, thread, maxdist, outputfile)
 }
 
-calc_circos <- function(geno012, snpinfo, method = "RMI", thread = 1L, threshold = 0.2) {
-    .Call(`_GWLD_calc_circos`, geno012, snpinfo, method, thread, threshold)
+calc_circos <- function(geno012, snpinfo, method = "RMI", thread = 1L, threshold = 0.2, outputfile = "") {
+    .Call(`_GWLD_calc_circos`, geno012, snpinfo, method, thread, threshold, outputfile)
 }
 
-circos <- function(m, snpinfo, threshold = 0.2) {
-    .Call(`_GWLD_circos`, m, snpinfo, threshold)
+circos <- function(m, snpinfo, threshold = 0.2, outputfile = "") {
+    .Call(`_GWLD_circos`, m, snpinfo, threshold, outputfile)
 }
 

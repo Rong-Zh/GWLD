@@ -41,6 +41,7 @@ setGeneric("MI", function(g1, g2, cores = 1, ...) {
 setMethod(
   "MI", signature(g1 = "data.frame"),
   function(g1, cores = 1) {
+    cores <- .whole_number(cores, "cores")
     res <- .Call("_GWLD_MIC_Mat", as.matrix(g1), cores, PACKAGE = "GWLD")
     row.names(res) <- colnames(res) <- colnames(g1)
     return(res)
@@ -51,6 +52,7 @@ setMethod(
 setMethod(
   "MI", signature(g1 = "matrix"),
   function(g1, cores = 1) {
+    cores <- .whole_number(cores, "cores")
     res <- .Call("_GWLD_MIC_Mat", g1, cores, PACKAGE = "GWLD")
     row.names(res) <- colnames(res) <- colnames(g1)
     return(res)

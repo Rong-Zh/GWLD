@@ -20,17 +20,17 @@ HeatMap(
 )
 }
 \arguments{
-\item{data}{Genotype matrix/data.frame, or a reader result containing Genotype and Info. May be omitted when LDmatrix is supplied.}
+\item{data}{genotype matrix/data.frame, or a reader result with Genotype and Info}
 
 \item{method}{measure linkage disequilibrium method}
 
-\item{SnpPosition}{Position vector, or a matrix/data.frame with chromosome and position columns. Inferred from reader results.}
+\item{SnpPosition}{data.frame or matrix}
 
 \item{SnpName}{vector}
 
 \item{cores}{thread number}
 
-\item{color}{heatmap corlor}
+\item{color}{a preset name or a nonempty vector of valid R colors}
 
 \item{showLDvalues}{logical}
 
@@ -40,7 +40,7 @@ HeatMap(
 
 \item{family}{Font for heatmap}
 
-\item{LDmatrix}{Optional precomputed square numeric LD matrix. When supplied, no genotype conversion or LD calculation is performed. Use method to select the appropriate legend.}
+\item{LDmatrix}{optional precomputed LD matrix; named variants must match the supplied IDs and order}
 
 \item{...}{NULL}
 }

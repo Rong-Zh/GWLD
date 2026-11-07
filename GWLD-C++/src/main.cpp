@@ -19,7 +19,7 @@ void matrix_file(const arma::Mat<double>& matrix,const std::string& path) {
 void pairs_file(const Dataset& data,const Engine& engine,Method method,int threads,
                 bool decay,int maxdist,double threshold,const std::string& path,
                 const arma::Mat<double>* matrix) {
-    #ifndef _OPENMP
+    #if !defined(_OPENMP) || defined(GWLD_NO_OPENMP)
     (void)threads;
     #endif
     auto out=output(path);
@@ -30,12 +30,12 @@ void pairs_file(const Dataset& data,const Engine& engine,Method method,int threa
     for (std::size_t start=0; start<n; start+=batch) {
         const auto count=std::min(batch,n-start);
         std::vector<std::string> rows(count);
-        #ifdef _OPENMP
+        #if defined(_OPENMP) && !defined(GWLD_NO_OPENMP)
         #pragma omp parallel for schedule(dynamic,1) num_threads(threads)
         #endif
         for (std::int64_t offset=0; offset<static_cast<std::int64_t>(count); ++offset) {
             const auto i=start+offset; const auto& a=data.sites[i];
-            std::ostringstream buffer; buffer.precision(12);
+            std::ostringstream buffer; buffer.precision(std::numeric_limits<double>::max_digits10);
             auto emit=[&](std::size_t j) {
                 const auto& b=data.sites[j];
                 if (!decay && a.chr==b.chr) return;
@@ -94,11 +94,9 @@ void frequency_file(const Dataset& data,const std::string& path) {
     out<<"CHROM\tPOS\tID\tREF\tALT\tREF_FREQ\tALT_FREQ\tMISSING_RATE\n";
     for (arma::uword j=0; j<data.genotypes.n_cols; ++j) {
         const int* column=data.genotypes.colptr(j);
-        std::size_t called=0; double reference=0;
-        for (arma::uword i=0; i<data.genotypes.n_rows; ++i) if (column[i]>=0) {
-            ++called; reference+=2-column[i];
-        }
-        const double p=called ? reference/(2.0*called) : nan();
+        const auto summary=GWLD::summarize(column,data.genotypes.n_rows);
+        const auto called=static_cast<std::size_t>(summary.total);
+        const double p=summary.p;
         const auto& site=data.sites[j];
         out<<site.chr<<'\t'<<site.pos<<'\t'<<site.id<<'\t'<<data.alleles[j][0]<<'\t'<<data.alleles[j][1]
            <<'\t'<<p<<'\t'<<1-p<<'\t'<<static_cast<double>(data.samples.size()-called)/data.samples.size()<<'\n';
@@ -119,7 +117,7 @@ int execute(const Options& options) {
     if (options.prefix.empty()) throw std::invalid_argument("--output-prefix must not be empty");
     if (options.command==Command::Convert && options.format!="vcf" && options.format!="dosage")
         throw std::invalid_argument("--format must be vcf or dosage");
-    #ifndef _OPENMP
+    #if !defined(_OPENMP) || defined(GWLD_NO_OPENMP)
     if (threads>1) throw std::invalid_argument("This build has no OpenMP support; use --threads 1");
     #endif
     const auto method=options.method;

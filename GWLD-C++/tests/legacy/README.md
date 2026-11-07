@@ -1,6 +1,28 @@
-# v1 benchmark reference
+# Historical references and utility compatibility helpers
 
-These three files are the unchanged v1 calculation sources from commit
-`c8079ab`. They are compiled only by the optional `gwld_benchmark` target,
-using the same compiler and build type as the new shared kernel.
-Production CLI and R code use `GWLD-R/inst/include/gwld`.
+`methods.cpp` retains the v1 calculation code from commit `c8079ab`, apart
+from translated comments and qualified references to its historical utilities.
+`utils_reference.cpp` and `utils_reference.h` freeze the original utility
+algorithms in `legacy_reference`. The optional `gwld_benchmark` links these
+frozen utilities so changes to the optimized helpers do not alter its baseline.
+
+`utils.cpp` and `utils.h` now contain the optimized compatibility helpers:
+const-reference inputs, delimiter lookup, direct file-field parsing, buffered
+numeric writing, shared vectorizable genotype counts, and checked metadata
+selection. Valid rectangular output retains the original trailing delimiters
+and six significant digits. Recent C++17 libraries use `to_chars`; older
+language/library configurations retain the classic-locale stream formatter.
+Empty output is supported, invalid input throws, and the final chromosome
+is no longer lost when it starts on the last row. SNP metadata selection
+returns exactly the requested columns, including selections other than three.
+
+These compatibility helpers are not linked into the production CLI. Production
+calculations use `GWLD-R/inst/include/gwld`; production PLINK field parsing
+uses `include/dataset.hpp`. The optimized genotype summary is shared by the
+helpers, the CLI frequency command and the R/C++ calculation interfaces.
+
+`gwld_utils_test` compares valid results and file bytes against the frozen
+reference and checks corrected boundary cases. With benchmarks enabled,
+`gwld_utils_benchmark [output_prefix]` alternates three timed runs after warmup,
+reports medians, and verifies each result. It measures splitting, production
+whitespace parsing, reading, frequencies, allele counting and matrix writing.

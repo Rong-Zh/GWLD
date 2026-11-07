@@ -9,13 +9,17 @@ ped2matrix(FilePrefix, genotype = c("int", "char"), ...)
 \arguments{
 \item{FilePrefix}{plink format(.ped, .map) file prefix}
 
-\item{genotype}{"int" (default) for an integer 0/1/2/NA matrix, or "char" for allele strings.}
+\item{genotype}{"int" (default) for 0/1/2/NA or "char" for allele strings}
 
 \item{...}{NULL}
 }
-\details{
-Integer output counts non-major alleles directly from the PED allele columns without constructing intermediate genotype strings. Missing alleles (0) produce NA. Frequency ties use lexical allele order. The returned list contains Info and Genotype, like bed2matrix and vcf2matrix. To obtain allele strings, explicitly request genotype = "char".
-}
 \description{
 plink format(.ped, .map) to  matrix
+}
+\details{
+Integer genotypes count non-major alleles. Missing PED alleles (0)
+become NA; frequency ties use lexical allele order. No intermediate genotype
+strings are constructed for integer output.
+Sample names use FID:IID; percent signs and colons within each component
+are escaped, and duplicate family/individual pairs are rejected.
 }

@@ -32,6 +32,7 @@ reference <- function(a, b, reduced = FALSE) {
   (I-omega) / (n*log(2))
 }
 set.seed(2026)
+parallel_cores <- if (Sys.getenv("GWLD_TEST_OPENMP", "ON") == "OFF") 1L else 2L
 g <- matrix(sample(c(0L, 1L, 2L, NA_integer_), 1200, replace = TRUE), nrow = 100)
 for (i in seq_len(ncol(g)-1L)) for (j in seq.int(i+1L, ncol(g))) {
   near(MIC(g[,i], g[,j]), reference(g[,i], g[,j]))
@@ -39,17 +40,17 @@ for (i in seq_len(ncol(g)-1L)) for (j in seq.int(i+1L, ncol(g))) {
 }
 for (method in c("RMI", "MI", "r^2", "D", "D'")) {
   one <- gwld(g, method, 1L)
-  two <- gwld(g, method, 2L)
+  two <- gwld(g, method, parallel_cores)
   stopifnot(identical(one, two), all(is.na(one[lower.tri(one, diag = TRUE)])))
 }
-near(MIC_Mat(g, 2L), gwld(g, "MI", 2L))
-near(RMIC_Mat(g, 2L), gwld(g, "RMI", 2L))
-near(LDC_Mat(g, "r^2", 2L), gwld(g, "r^2", 2L))
+near(MIC_Mat(g, parallel_cores), gwld(g, "MI", parallel_cores))
+near(RMIC_Mat(g, parallel_cores), gwld(g, "RMI", parallel_cores))
+near(LDC_Mat(g, "r^2", parallel_cores), gwld(g, "r^2", parallel_cores))
 # Exercise the packed backend and RMI lookup path above the small-cohort cutoff.
 large <- rbind(g,g,g)
 for (method in c("MI","RMI","r^2","D","D'")) {
   packed <- gwld(large,method,1L)
-  stopifnot(identical(packed,gwld(large,method,2L)))
+  stopifnot(identical(packed,gwld(large,method,parallel_cores)))
   for (i in seq_len(ncol(large)-1L)) for(j in seq.int(i+1L,ncol(large))) {
     scalar <- switch(method,MI=MIC(large[,i],large[,j]),RMI=RMIC(large[,i],large[,j]),
                      LDC(large[,i],large[,j],method))
@@ -69,9 +70,9 @@ stopifnot(identical(dim(gwld(matrix(integer(),0,4),"RMI")),c(4L,4L)),
 info <- cbind(rep(c("1", "2"), 6), c(2000, 10, 1000, 900000, 3000, 5000000000, 0, 11, 1000, 12, 4000, 13), paste0("s", 1:12))
 for (method in c("RMI", "MI", "r^2", "D", "D'")) {
   m <- gwld(g, method)
-  near(calc_decay(g, info, method, 1L, 1L), calc_decay(g, info, method, 2L, 1L))
-  near(calc_decay(g, info, method, 2L, 1L), decay(m, info, 1L))
-  near(calc_circos(g, info, method, 2L, 0.1), circos(m, info, 0.1))
+  near(calc_decay(g, info, method, 1L, 1L), calc_decay(g, info, method, parallel_cores, 1L))
+  near(calc_decay(g, info, method, parallel_cores, 1L), decay(m, info, 1L))
+  near(calc_circos(g, info, method, parallel_cores, 0.1), circos(m, info, 0.1))
 }
 empty <- info
 empty[,1] <- as.character(seq_len(nrow(empty)))

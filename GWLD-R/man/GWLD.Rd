@@ -19,11 +19,11 @@ GWLD(g1, g2, method = "RMI", cores = 1, ...)
 \S4method{GWLD}{numeric,numeric}(g1, g2, method = "RMI", cores = 1, ...)
 }
 \arguments{
-\item{g1}{vector,dataframe or matrix containing genotype coded with interger(0, 1, 2, NA)}
+\item{g1}{numeric vector, data.frame or matrix of exact 0/1/2/NA genotype codes (-1 also denotes missing)}
 
 \item{g2}{vector(ignored if g1 is a dataframe or matrix)}
 
-\item{method}{methods}
+\item{method}{RMI, MI, r2/r^2, D or Dprime/D'; lowercase names are accepted}
 
 \item{cores}{thread number}
 

@@ -5,15 +5,18 @@
 \title{circos legend}
 \usage{
 circos.legendlink(
-  x = x,
-  y = y,
-  legend.limits = c(min, max),
-  legend.n.breaks = legend.n.breaks,
-  legend.breaks = legend.breaks,
-  legend.labels = legend.labels,
-  legend.col = legend.col,
-  legend.fontsize = legend.fontsize,
-  legend.family = legend.family,
+  x = 0.88,
+  y = 0.5,
+  legend.limits = c(0, 1),
+  legend.n.breaks = 100,
+  legend.breaks = pretty(legend.limits, n = 4),
+  legend.labels = legend.breaks,
+  legend.col = viridisLite::viridis(legend.n.breaks, direction = -1),
+  legend.fontsize = 12,
+  legend.family = "serif",
+  width = unit(0.035, "snpc"),
+  height = unit(0.25, "snpc"),
+  just = c("center", "center"),
   ...
 )
 }
@@ -36,8 +39,20 @@ circos.legendlink(
 
 \item{legend.family}{The font family of legend}
 
-\item{...}{other graphical parameters}
+\item{width}{Width of the legend color bar, as a grid unit.}
+
+\item{height}{Height of the legend color bar, as a grid unit.}
+
+\item{just}{Legend justification, passed to grid::viewport.}
+
+\item{...}{Additional arguments passed to color_legend.}
+}
+\value{
+A grid grob containing the legend.
 }
 \description{
 circos legend
+}
+\details{
+Uses the built-in color_legend component for the color bar, ticks and label layout.
 }

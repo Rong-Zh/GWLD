@@ -1,3 +1,4 @@
+// Historical benchmark only; production kernels are in GWLD-R/inst/include/gwld.
 #include <iostream>
 #include <fstream>
 #include <sstream>
@@ -7,20 +8,23 @@
 #include <string>
 #include <float.h>
 #include <omp.h>
-#include "utils.h"
+#include "utils_reference.h"
+using legacy_reference::allele_freq;
+using legacy_reference::table;
+using legacy_reference::writearma;
 
 using namespace std;
 using namespace arma;
 
 double RMI(arma::Col<int> &g1, arma::Col<int> &g2) {
-    //unique去重并按升序排
+    // Get unique genotype values in ascending order.
     arma::Col<int> set_g1 = arma::unique(g1); 
     arma::Col<int> set_g2 = arma::unique(g2); 
-    //去掉set中NA值
+    // Remove missing genotypes from the category set.
     arma::Col<int> row_names = set_g1.elem(find(set_g1 != -1));
     arma::Col<int> col_names = set_g2.elem(find(set_g2 != -1));
     int len = g1.n_elem;
-    //防止精度丢失
+    // Use floating-point category counts to avoid loss of precision.
     double R = row_names.n_elem, S = col_names.n_elem; 
     std::unordered_map<int, int> row_index;
     for (int i=0; i<R; i++) {
@@ -30,16 +34,16 @@ double RMI(arma::Col<int> &g1, arma::Col<int> &g2) {
     for (int j=0; j<S; j++) {
         col_index[col_names[j]] = j;
     }
-    //使用double防止进度丢失，用0.0来填充
+    // Initialize the contingency table with double-precision zeros.
     arma::Mat<double> m(R, S, fill::zeros);
     for(int k=0; k<len; k++){
         if(g1[k]!= -1 && g2[k]!= -1){
             m(row_index[g1[k]], col_index[g2[k]]) +=1;
         }
     }
-    double n = arma::accu(m);//所有元素和
+    double n = arma::accu(m);// Sum all contingency-table entries.
     arma::Col<double> a = arma::sum(m,1);
-    arma::Row<double> b = arma::sum(m,0); //1是行, 0是列
+    arma::Row<double> b = arma::sum(m,0); // Armadillo dimension 1 sums rows; dimension 0 sums columns.
     double I = (lgamma(n+1) + arma::accu(arma::lgamma(m+1)) - arma::accu(arma::lgamma(a+1)) - arma::accu(arma::lgamma(b+1))) / (n*log(2));
     double w = n / (n + 0.5*R*S);
     arma::Col<double> x = (1-w)/R + w*a/n;
@@ -56,14 +60,14 @@ double RMI(arma::Col<int> &g1, arma::Col<int> &g2) {
 
 
 double MI(arma::Col<int> &g1, arma::Col<int> &g2) {
-    //unique去重并按升序排
+    // Get unique genotype values in ascending order.
     arma::Col<int> set_g1 = arma::unique(g1); 
     arma::Col<int> set_g2 = arma::unique(g2); 
-    //去掉set中NA值
+    // Remove missing genotypes from the category set.
     arma::Col<int> row_names = set_g1.elem(find(set_g1 != -1));
     arma::Col<int> col_names = set_g2.elem(find(set_g2 != -1));
     int len = g1.n_elem;
-    //防止进度丢失
+    // Use floating-point category counts to avoid loss of precision.
     double R = row_names.n_elem, S = col_names.n_elem; 
     std::unordered_map<int, int> row_index;
     for (int i=0; i<R; i++) {
@@ -73,35 +77,35 @@ double MI(arma::Col<int> &g1, arma::Col<int> &g2) {
     for (int j=0; j<S; j++) {
         col_index[col_names[j]] = j;
     }
-    //使用double防止进度丢失，用0.0来填充
+    // Initialize the contingency table with double-precision zeros.
     arma::Mat<double> m(R, S, fill::zeros);
     for(int k=0; k<len; k++){
         if(g1[k]!= -1 && g2[k]!= -1){
             m(row_index[g1[k]], col_index[g2[k]]) +=1;
         }
     }
-    double n = arma::accu(m); //所有元素和 
-    arma::Mat<double> freq = m/n;//频率table
-    arma::Col<double> a = arma::sum(freq,1); //行和
-    arma::Row<double> b = arma::sum(freq,0); //列和
-    //定义熵的公式,并且0*log2(0)=0,单位为比特.
+    double n = arma::accu(m); // Sum all contingency-table entries.
+    arma::Mat<double> freq = m/n;// Convert counts to frequencies.
+    arma::Col<double> a = arma::sum(freq,1); // Calculate row sums.
+    arma::Row<double> b = arma::sum(freq,0); // Calculate column sums.
+    // Calculate entropy in bits, defining 0 * log2(0) as zero.
     arma::Col<double> rowh = a.transform([] (double val) {return(val==0.0 ? 0.0 : -val*log2(val));});
     arma::Row<double> colh = b.transform([] (double val) {return(val==0.0 ? 0.0 : -val*log2(val));});
     arma::Mat<double> tabh = freq.transform([] (double val) {return(val==0.0 ? 0.0 : -val*log2(val));});
-    //计算位点g1的信息熵
+    // Calculate entropy at the first locus.
     double H_fg = arma::accu(rowh);
-    //计算位点g2的信息熵
+    // Calculate entropy at the second locus.
     double H_sg = arma::accu(colh);
-    //#计算联合熵
+    // Calculate joint entropy.
     double H_fg_sg = arma::accu(tabh);
-    //计算互信息
+    // Calculate mutual information.
     double I = H_fg + H_sg - H_fg_sg;
     return I;
 }
 
 //______________________________________LD_________________________________________________
 double nlogLik(double &pAB, double &pA , double &pB, arma::Mat<double> &m) {
-    //负对数似然函数
+    // Evaluate the negative log-likelihood.
     double y = -((2*m(0,0)+m(0,1)+m(1,0))*log(pAB) +
                  (2*m(0,2)+m(0,1)+m(1,2))*log(pA-pAB) +
                  (2*m(2,0)+m(1,0)+m(2,1))*log(pB-pAB) +
@@ -195,15 +199,15 @@ double fmin(double ax, double bx, double tol, double &pA, double &pB, arma::Mat<
 }
 
 double LD(arma::Col<int> &g1, arma::Col<int> &g2, std::string method="r^2") {
-    //统计第一位点频率
+    // Calculate allele frequencies at the first locus.
     vector<double> A_freq =  allele_freq(g1);
     double pA = A_freq[0];
     double pa = A_freq[1];
-    //统计第二位点频率
+    // Calculate allele frequencies at the second locus.
     vector<double> B_freq =  allele_freq(g2);
     double pB = B_freq[0];
     double pb = B_freq[1];
-    //两个位点之间形成3*3的table, 用0来填充
+    // Initialize a 3-by-3 contingency table for the two loci.
     arma::Mat<double> m = table(g1, g2, 3, 3);
     double Dmin = std::max(-pA*pB, -pa*pb);
     double pmin = pA*pB + Dmin;
@@ -211,16 +215,16 @@ double LD(arma::Col<int> &g1, arma::Col<int> &g2, std::string method="r^2") {
     double pmax = pA*pB + Dmax;
 
     double eps = DBL_EPSILON;
-    double tol = pow(DBL_EPSILON, 0.25);//设置精度
+    double tol = pow(DBL_EPSILON, 0.25);// Set the optimizer tolerance.
     double pAB = fmin(pmin+eps, pmax+eps, tol, pA, pB, m);
     if(method == "r^2") {
-        double corr = pow(pAB - pA*pB, 2)/(pA * pB * pa * pb);//计算R^2
+        double corr = pow(pAB - pA*pB, 2)/(pA * pB * pa * pb);// Calculate r-squared.
         return corr;
     } else if(method == "D") {
-        double estD = pAB - pA*pB;//计算D值
+        double estD = pAB - pA*pB;// Calculate D.
         return estD;
     } else if(method == "D'") {
-        double estDp = pAB-pA*pB>0 ? (pAB-pA*pB)/Dmax : (pAB-pA*pB)/Dmin;//计算D'值
+        double estDp = pAB-pA*pB>0 ? (pAB-pA*pB)/Dmax : (pAB-pA*pB)/Dmin;// Calculate D-prime.
         return estDp;
     } else {
         std::cerr << "unknown method! input one of methods(r^2, D, D')" << endl;
@@ -245,7 +249,7 @@ double methods(arma::Col<int> &g1, arma::Col<int> &g2, const string &method) {
 arma::Mat<double> methods_mat(arma::Mat<int> &geno012, const string &method ="RMI", int thread=1) {
     int n = geno012.n_cols;
     arma::Mat<double> m(n, n);
-    m.fill(datum::nan);//用nan填充,上三角矩阵.
+    m.fill(datum::nan);// Initialize an upper-triangular result with NaN values.
     int i, j;
     double res;
     arma::Col<int> g1, g2;

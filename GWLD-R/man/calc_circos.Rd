@@ -5,9 +5,16 @@
 \alias{circos}
 \title{Calculate linkage disequilibrium circos}
 \usage{
-calc_circos(geno012, snpinfo, method = "RMI", cores = 1, threshold = 0.2)
+calc_circos(
+  geno012,
+  snpinfo,
+  method = "RMI",
+  cores = 1,
+  threshold = 0.2,
+  file = NULL
+)
 
-circos(m, snpinfo, threshold = 0.2)
+circos(m, snpinfo, threshold = 0.2, file = NULL)
 }
 \arguments{
 \item{geno012}{a genetype matrix coded by 0,1,2, NA(NA for missing values)}
@@ -20,8 +27,15 @@ circos(m, snpinfo, threshold = 0.2)
 
 \item{threshold}{the minimum threshold of preserve pairwise calculations}
 
+\item{file}{optional output TSV path; stream in bounded batches instead of returning a matrix}
+
 \item{m}{a upper.tri matrix calculated by linkage disequilibrium measures}
 }
 \description{
 Calculate linkage disequilibrium circos
+}
+\details{
+Values retain double precision. Streaming files include a header.
+Calculations check for interrupts between batches; interrupted files retain
+completed rows. cores must be a whole number.
 }

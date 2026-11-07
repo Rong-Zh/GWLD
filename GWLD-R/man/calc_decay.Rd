@@ -5,9 +5,16 @@
 \alias{decay}
 \title{Calculate linkage disequilibrium decay}
 \usage{
-calc_decay(geno012, snpinfo, method = "RMI", cores = 1, maxdist = 300)
+calc_decay(
+  geno012,
+  snpinfo,
+  method = "RMI",
+  cores = 1,
+  maxdist = 300,
+  file = NULL
+)
 
-decay(m, snpinfo, maxdist = 300)
+decay(m, snpinfo, maxdist = 300, file = NULL)
 }
 \arguments{
 \item{geno012}{a genetype matrix coded by 0,1,2, NA(NA for missing values)}
@@ -20,8 +27,15 @@ decay(m, snpinfo, maxdist = 300)
 
 \item{maxdist}{The maximum distance calculated by pairwise SNP}
 
+\item{file}{optional output TSV path; stream in bounded batches instead of returning a matrix}
+
 \item{m}{a upper.tri matrix calculated by linkage disequilibrium measures}
 }
 \description{
 Calculate linkage disequilibrium decay
+}
+\details{
+Values retain double precision. Streaming files include a header.
+Calculations check for interrupts between batches; interrupted files retain
+completed rows. cores and maxdist must be whole numbers.
 }

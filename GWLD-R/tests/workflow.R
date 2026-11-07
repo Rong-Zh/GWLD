@@ -1,15 +1,17 @@
-# Run from the repository root after installing the package.
+# Run from the repository root or through R CMD check after installing the package.
 library(GWLD)
 near <- function(a, b) stopifnot(isTRUE(all.equal(a, b, check.attributes = FALSE)))
 fails <- function(expr) stopifnot(inherits(try(force(expr), silent = TRUE), "try-error"))
 
+fixtures <- if (dir.exists("GWLD-R/tests/fixtures")) "GWLD-R/tests/fixtures" else "fixtures"
+
 # Reader outputs are interchangeable, including explicit PED character output.
-ped <- ped2matrix("example/example-2")
-chars <- ped2matrix("example/example-2", genotype = "char")
+ped <- ped2matrix(file.path(fixtures, "example-2"))
+chars <- ped2matrix(file.path(fixtures, "example-2"), genotype = "char")
 stopifnot(is.integer(ped$Genotype), identical(ped$Info, chars$Info))
 stopifnot(identical(ped$Genotype, codegeno(chars$Genotype)))
-vcf <- vcf2matrix("example/example-3.vcf")
-bed <- bed2matrix("example/example")
+vcf <- vcf2matrix(file.path(fixtures, "example-3.vcf"))
+bed <- bed2matrix(file.path(fixtures, "example"))
 for (input in list(ped, vcf, bed)) {
   stopifnot(is.integer(input$Genotype), identical(codegeno(input$Genotype), input$Genotype))
 }

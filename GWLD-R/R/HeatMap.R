@@ -4,12 +4,12 @@
 #' @param method measure linkage disequilibrium method
 #' @param SnpPosition data.frame or matrix
 #' @param SnpName vector
-#' @param color heatmap corlor
+#' @param color a preset name or a nonempty vector of valid R colors
 #' @param showLDvalues logical
 #' @param title heatmap's title
 #' @param label.size label's font size of heatmap
 #' @param family Font for heatmap
-#' @param LDmatrix optional precomputed LD matrix; when supplied, skip LD calculation
+#' @param LDmatrix optional precomputed LD matrix; named variants must match the supplied IDs and order
 #' @param cores thread number
 #' @param ... NULL
 #'
@@ -20,6 +20,8 @@
 HeatMap <- function(data = NULL, method = "r^2", SnpPosition = NULL, SnpName = NULL, cores = 1,
                     color = NULL, showLDvalues = FALSE, title = "Pairwise LD", label.size = 10, family = NULL,
                     LDmatrix = NULL, ...) {
+  method <- .method_name(method)
+  cached <- !is.null(LDmatrix)
   if (is.list(data) && !is.data.frame(data)) {
     if (is.null(data$Genotype) || is.null(data$Info)) stop("Reader result must contain Genotype and Info")
     if (is.null(SnpPosition)) SnpPosition <- data$Info[, 1:2, drop = FALSE]
@@ -58,8 +60,17 @@ HeatMap <- function(data = NULL, method = "r^2", SnpPosition = NULL, SnpName = N
   if (!is.null(data) && ncol(data) != nrow(LDmatrix)) stop("LDmatrix and genotype variant counts differ")
   if (is.null(SnpName)) SnpName <- colnames(LDmatrix)
   if (!is.null(SnpName) && length(SnpName) != nrow(LDmatrix)) stop("SnpName length must match LDmatrix")
-  if (!is.null(SnpName) && !identical(dimnames(LDmatrix), list(as.character(SnpName), as.character(SnpName))))
-    dimnames(LDmatrix) <- list(as.character(SnpName), as.character(SnpName))
+  if (!is.null(SnpName)) {
+    SnpName <- as.character(SnpName)
+    if (anyNA(SnpName)) stop("SnpName must not contain missing variant IDs")
+    if (cached && anyDuplicated(SnpName)) stop("Cached LDmatrix matching requires unique variant IDs")
+    for (ids in dimnames(LDmatrix)) {
+      if (!is.null(ids) && !identical(as.character(ids), SnpName))
+        stop("LDmatrix variant IDs/order do not match SnpName or reader metadata; align them explicitly")
+    }
+    if (is.null(rownames(LDmatrix))) rownames(LDmatrix) <- SnpName
+    if (is.null(colnames(LDmatrix))) colnames(LDmatrix) <- SnpName
+  }
   # The SnpPosition CHORM, POS;
   # Distances should not be calculated between different chromosomes
   if (!is.null(SnpPosition)) {
@@ -77,7 +88,7 @@ HeatMap <- function(data = NULL, method = "r^2", SnpPosition = NULL, SnpName = N
     }
   }
 
-  # ____________________________创建新的视图框_________________________________#
+  # Create the plot viewports.
   mainvp <- viewport(
     width = unit(0.8, "snpc"), height = unit(0.8, "snpc"),
     name = "mainvp"
@@ -86,30 +97,34 @@ HeatMap <- function(data = NULL, method = "r^2", SnpPosition = NULL, SnpName = N
     width = unit(0.85, "snpc"), height = unit(0.85, "snpc"),
     y = 0.6, angle = -45, name = "flipVP"
   )
-  # ______________________________颜色选择______________________________________#
+  # Select the color palette.
+  if (!is.null(color) && (!is.character(color) || !length(color) || anyNA(color)))
+    stop("color must be a preset name or a nonempty color vector")
   if (is.null(color)) {
     color <- grey.colors(100)
-  } else if (color == "blueTored") {
+  } else if (length(color) == 1L && color == "blueTored") {
     colors <- colorRampPalette(c("red", "purple", "blue"), space = "rgb")
     color <- colors(100)
-  } else if (color == "YellowTored") {
+  } else if (length(color) == 1L && color == "YellowTored") {
     colors <- colorRampPalette(c("yellow", "orange", "red"), space = "rgb")
     color <- colors(100)
   } else {
     color <- color
   }
-  # 颜色选择
+  if (!is.character(color) || !length(color) || anyNA(color)) stop("color must be a preset name or a nonempty color vector")
+  tryCatch(col2rgb(color), error = function(e) stop("Invalid heatmap color: ", conditionMessage(e)))
+  # Select the color palette.
   mybreak <- seq(breaks[1], breaks[2], length.out = length(color) + 1)
   colcut <- as.character(cut(LDmatrix, mybreak, labels = as.character(color), include.lowest = T, right = T))
-  # ______________________________创建方形框____________________________________#
+  # Create the heatmap cells.
   rectcol <- ifelse(nrow(LDmatrix) <= 60, "white", NA)
   ImageRect <- MakeImageRect(dim(LDmatrix)[1], dim(LDmatrix)[2], colcut,
     name = "heatmapRect", byrow = FALSE, rectlwd = 0.5,
     rectcol = rectcol
   )
-  # ___________________________设置绘图中的字体_________________________________#
+  # Set the plot font.
   family <- ifelse(is.null(family), "serif", family)
-  # ________________________在方形框上是否显示LD的值____________________________#
+  # Optionally display LD values in the cells.
   if (showLDvalues) {
     ImageText <- MakeImageText(dim(LDmatrix)[1], dim(LDmatrix)[2],
       round(LDmatrix, digits = 2),
@@ -119,15 +134,15 @@ HeatMap <- function(data = NULL, method = "r^2", SnpPosition = NULL, SnpName = N
   } else {
     ImageText <- NULL
   }
-  # ____________________把方形框和LD值的图片放入flipVP视图中____________________#
+  # Place the cells and LD values in the rotated viewport.
   heatMap <- gTree(children = gList(ImageRect, ImageText), vp = flipVP, name = "heatMap")
-  # ___________________________绘图中的主标题设置_______________________________#
-  ## 主标题放在heatmapVP
+  # Set the main plot title.
+  ## Place the main title above the heatmap.
   main_title <- textGrob(title, 0.5, 1.05,
     gp = gpar(cex = 1.2, fontfamily = family),
     name = "main_title"
   )
-  ## 标签标题放在heatmapVP
+  ## Place the region label above the heatmap.
   if (is.null(SnpPosition)) {
     mapLabel <- NULL
   } else {
@@ -138,9 +153,9 @@ HeatMap <- function(data = NULL, method = "r^2", SnpPosition = NULL, SnpName = N
     just = "centre", name = "label_title"
   )
   title <- gTree(children = gList(main_title, label_title), name = "title")
-  # ___________________________绘图中SNP的标签设置______________________________#
+  # Create the SNP labels.
   label <- HeatmapLabels(LDmatrix, SnpPosition, SnpName, vp = flipVP, label.size = label.size, family = family)
-  # ________________________________设置图例____________________________________#
+  # Create the legend.
   legend <- HeatmapLegend(0.8, 0,
     legend.colors = color, legend.title, breaks = breaks, n.breaks = length(color),
     labels = labels, legend.family = family
@@ -159,7 +174,7 @@ HeatMap <- function(data = NULL, method = "r^2", SnpPosition = NULL, SnpName = N
   ), class = "HeatMap"))
 }
 
-## 绘图函数的类为HeatMap
+## Drawing methods for HeatMap objects.
 #' @importFrom grid grid.draw
 #' @export
 grid.draw.HeatMap <- function(x, recording = TRUE) {

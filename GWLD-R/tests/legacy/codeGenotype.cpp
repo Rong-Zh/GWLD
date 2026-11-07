@@ -1,3 +1,4 @@
+// Historical benchmark only; production encoding is in src/codeGenotype.cpp.
 #define ARMA_64BIT_WORD 1
 // [[Rcpp::depends(RcppArmadillo)]]
 
@@ -13,7 +14,7 @@ using namespace arma;
 
 bool cmp(pair<std::string, double> a, pair<string, double> b)
 {
-    // 从大到小排列
+    // Sort in descending order.
     return a.second > b.second;
 }
 
@@ -88,7 +89,7 @@ List stats_freq(CharacterVector &vector, std::string sep)
 {
     std::vector<pair<std::string, double>> sorted = split_str(vector, sep);
     Rcpp::CharacterVector allele;
-    Rcpp::NumericVector counts; // 换成Rcpp::NumericVector
+    Rcpp::NumericVector counts; // Store counts in an Rcpp::NumericVector.
     for (size_t j = 0; j < sorted.size(); j++)
     {
         allele.push_back(sorted[j].first);
@@ -124,14 +125,14 @@ arma::Col<int> code_Vec(CharacterVector &vector, std::string sep)
         size_t start = 0;
         if (vector[i] == NA_STRING)
         {
-            geno012_col(i) = NA_INTEGER; // 表示缺失
+            geno012_col(i) = NA_INTEGER; // Mark missing genotypes.
         }
         else
         {
-            std::string str = Rcpp::as<std::string>(vector[i]); // R语言字符转string
+            std::string str = Rcpp::as<std::string>(vector[i]); // Convert the R character value to std::string.
             while (start < str.size())
             {
-                size_t pos = str.find(A1, start); // 有问题
+                size_t pos = str.find(A1, start); // TODO: review this lookup.
                 if (pos == std::string::npos)
                 {
                     break;
@@ -181,7 +182,7 @@ arma::Col<int> code_Vec(CharacterVector &vector, std::string sep)
 // [[Rcpp::export]]
 Rcpp::IntegerVector recode(CharacterVector &vector, std::string sep)
 {
-    arma::Col<int> geno012_col = code_Vec(vector, sep); // 列向量转成R语言vector
+    arma::Col<int> geno012_col = code_Vec(vector, sep); // Convert the column vector to an R vector.
     return Rcpp::IntegerVector(geno012_col.begin(), geno012_col.end());
 }
 

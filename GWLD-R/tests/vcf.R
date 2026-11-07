@@ -50,6 +50,9 @@ if (nzchar(cli)) {
   stopifnot(system2(cli,c("convert","--vcf",shQuote(gzip),"--format","dosage","-o",shQuote(prefix)))==0L)
   codes <- as.matrix(read.table(paste0(prefix,".dosage.tsv"),header=TRUE,comment.char="",check.names=FALSE)[,6:9])
   near(t(codes),expected)
+  stopifnot(system2(cli,c("calculate","--vcf",shQuote(gzip),"--method","mi","--heatmap","--decay","-o",shQuote(prefix)))==0L)
+  near(as.matrix(read.table(paste0(prefix,".heatmap"))),GWLD(expected,method="MI"))
+  near(as.matrix(read.table(paste0(prefix,".decay"),colClasses="character")),calc_decay(expected,data$Info,method="MI"))
 }
 writeChar(header,path,eos=NULL,useBytes=TRUE)
 stopifnot(identical(dim(read.vcf(path)),c(0L,13L)))

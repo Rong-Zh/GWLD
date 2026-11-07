@@ -4,6 +4,28 @@
   value
 }
 
+# Use the circle's upper-right corner rather than a separate legend column.
+.circos_legend_layout <- function(labels = c(0, 0.25, 0.5, 0.75, 1), fontsize = 12, family = "serif") {
+  x_scale <- diff(graphics::grconvertX(c(0, 1), "user", "ndc"))
+  y_scale <- diff(graphics::grconvertY(c(0, 1), "user", "ndc"))
+  text <- textGrob(labels, gp = gpar(fontsize = fontsize, fontfamily = family))
+  label_width <- convertWidth(grobWidth(text) + unit(2, "mm"), "npc", valueOnly = TRUE) / x_scale
+  label_height <- convertHeight(grobHeight(text), "npc", valueOnly = TRUE) / y_scale
+  # Keep the complete legend outside the chromosome-label envelope.
+  left <- 1.12 - 0.06 - label_width
+  bottom <- sqrt(max(0, 1.04^2 - max(0, left)^2))
+  bar_height <- max(0.05, min(0.45, 0.92 - bottom - label_height))
+  list(x = graphics::grconvertX(1.12, "user", "ndc"),
+       y = graphics::grconvertY(0.92, "user", "ndc"),
+       width = unit(0.06 * x_scale, "npc"),
+       height = unit(bar_height * y_scale, "npc"))
+}
+
+.circos_color_function <- function(limits, colors) {
+  if (length(colors) == 1L) colors <- rep(colors, 2L)
+  circlize::colorRamp2(seq(limits[1], limits[2], length.out = length(colors)), colors, space = "RGB")
+}
+
 #' circos snp
 #'
 #' @param data chromosome/position matrix or data.frame, or custom chromosome ranges
@@ -15,6 +37,7 @@
 #' @param cex.lab a numerical vector giving the amount by which plotting characters and symbols should be scaled relative to the defaul
 #' @param bg.border Color for the border of the plotting regions
 #' @param family the name of a font family for drawing text
+#' @param legend.space Space reserved to the right of the circle, in circle-radius units; use zero when no legend is needed.
 #' @param ... other graphical parameters
 #'
 #' @import circlize
@@ -24,8 +47,10 @@
 #' @export
 
 circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02, 0),
-                            track.height = 0.1, cex.lab = 0.6, bg.border = NA, family = NULL, ...) {
-  ### 输入的数据应该有3列CHROM,POS,ID, 重要的是前两列可以直接拿vcf文件中前5列
+                            track.height = 0.1, cex.lab = 0.6, bg.border = NA, family = NULL, legend.space = 0, ...) {
+  if (!is.numeric(legend.space) || length(legend.space) != 1L ||
+      !is.finite(legend.space) || legend.space < 0) stop("legend.space must be a finite nonnegative number")
+  ### Use CHROM, POS, and ID metadata; only the chromosome and position columns are required.
   if (inherits(data, "custom")) {
     # data structure: chr, start, end
     df <- as.data.frame(data)
@@ -46,23 +71,25 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
   if (anyNA(df[, 1]) || any(!nzchar(df[, 1]))) stop("Chromosome names must not be missing")
   df[, 2] <- .circos_numeric(df[, 2], "Chromosome starts")
   df[, 3] <- .circos_numeric(df[, 3], "Chromosome ends")
-  # 设置字体
+  # Set the font.
   family <- ifelse(is.null(family), "serif", family)
-  # 清除circos参数
+  # Reset the circos plotting state.
   circos.clear()
-  circos.par(cell.padding = cell.padding)
-  ## 必须使用因子，不然顺序会改变
+  # Shift the circle left without reducing its radius.
+  circos.par(cell.padding = cell.padding, canvas.xlim = c(-0.92, 1.08 + legend.space),
+             canvas.ylim = c(-1, 1))
+  ## Use factor levels to preserve the chromosome order.
   chromosome_order <- if (all(grepl("^[0-9]+$", df[, 1])))
     df[order(as.numeric(df[, 1])), 1] else sort(df[, 1])
   circos.initialize(factors = factor(df[, 1], levels = chromosome_order), xlim = df[, 2:3])
-  ## 坐标轴和标签
+  ## Draw the axes and labels.
   circos.track(
     ylim = ylim, track.height = track.height, bg.border = bg.border,
     panel.fun = function(x, y, ...) {
       sector.index <- get.current.sector.index()
-      # 显示坐标轴
+      # Draw the axis.
       circos.axis(h = "bottom", labels = F)
-      # 显示染色体号
+      # Draw the chromosome label.
       xlim <- get.cell.meta.data("xlim")
       circos.text(mean(xlim), 0.6,
         labels = sector.index, facing = "downward",
@@ -81,7 +108,7 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
 #' @param color.theme The color theme in the legend
 #' @param track.height Height of the track
 #' @param legend.show logical whether to show the legend
-#' @param legend.position legend position
+#' @param legend.position NULL places the legend at the upper right of the circle; an explicit c(x, y) uses normalized device coordinates.
 #' @param legend.fontsize the font size of legend
 #' @param legend.limits A numeric vector of length two providing limits of the scale
 #' @param legend.breaks A numeric vector of positions
@@ -99,10 +126,10 @@ circos.ideogram <- function(data, ylim = c(0, 1), cell.padding = c(0.02, 0, 0.02
 #' @export
 #'
 #' @examples NULL
-# 数据有7列，CHROM_1, POS_1, ID_1 , CHROM_2, POS_2, ID_2, Value,
-# 根据value值的大小设置连线的颜色
+# The seven columns are CHROM_1, POS_1, ID_1, CHROM_2, POS_2, ID_2, and Value.
+# Color links according to their LD values.
 circos.linksnp <- function(data, ylim = c(0, 1), color.theme = "viridis", track.height = 0.05, legend.show = TRUE,
-                           legend.position = c(0.88, 0.75), legend.fontsize = 12, legend.limits = NULL,
+                           legend.position = NULL, legend.fontsize = 12, legend.limits = NULL,
                            legend.breaks = NULL, legend.labels = NULL, legend.n.breaks = NULL, family = NULL,
                            bg.border = "black", bg.col = NULL, lwd = par("lwd"), lty = par("lty"), ...) {
   data <- as.data.frame(data, stringsAsFactors = FALSE)
@@ -116,37 +143,22 @@ circos.linksnp <- function(data, ylim = c(0, 1), color.theme = "viridis", track.
   data[, 2] <- .circos_numeric(data[, 2], "First SNP positions")
   data[, 5] <- .circos_numeric(data[, 5], "Second SNP positions")
   data[, 7] <- .circos_numeric(data[, 7], "LD values")
-  # 第一列和第三列的染色体位置必需是数值
-  # if (!all(grepl("chr", data[, 1])) && !all(grepl("chr", data[, 4]))) {
-  #   data[, 1] <- paste0("chr", data[, 1])
-  #   data[, 4] <- paste0("chr", data[, 4])
-  # }
-  # 图例使用多少种颜色
-  n.breaks <- ifelse(is.null(legend.n.breaks), 100, legend.n.breaks)
-  # 使用viridisLite包中的颜色
+  # Set the number of legend colors.
+  n.breaks <- if (is.null(legend.n.breaks)) 100L else .whole_number(legend.n.breaks, "legend.n.breaks")
+  # Use a palette from viridisLite.
   if (color.theme %in% c("viridis", "magma", "inferno", "plasma", "cividis", "rocket", "mako")) {
     link.colors <- do.call(color.theme, list(n.breaks, alpha = 1, begin = 0, end = 1, direction = -1))
   }
   if (is.null(legend.limits)) {
-    # 获取数据中的最大值和最小值
+    # Find the minimum and maximum LD values.
     limits <- c(floor(min(data[, 7]) * 10) / 10, ceiling(max(data[, 7]) * 10) / 10)
   } else {
     limits <- legend.limits
   }
   if (limits[1] == limits[2]) limits <- limits + c(-0.05, 0.05)
-  color_breaks <- seq(limits[1], limits[2], length.out = n.breaks + 1)
-  colorkey <- cut(data[, 7], color_breaks, labels = link.colors, include.lowest = T)
-  # #转换成RGB,归一化至[0,1]
-  # rgb_col <- data.frame(col2rgb(colorkey)/255)
-  # #设置透明度,归一化至[0,1]
-  # alpha <- as.numeric(colorkey)/n.breaks
-  # #连接SNP, 并根据值的大小设置颜色
-  # for (i in 1:nrow(data)) {
-  #   circos.link(data[i, 1], data[i, 2], data[i, 4], data[i, 5],
-  #               col = rgb(rgb_col[1, i], rgb_col[2, i], rgb_col[3, i], alpha[i]),
-  #               lwd = lwd,
-  #               lty = lty)
-  # }
+  if (!is.numeric(limits) || length(limits) != 2L || any(!is.finite(limits)) || diff(limits) <= 0)
+    stop("legend.limits must contain two increasing finite numbers")
+  colorkey <- .circos_color_function(limits, link.colors)(data[, 7])
   for (i in seq_len(nrow(data))) {
     circos.link(data[i, 1], data[i, 2], data[i, 4], data[i, 5],
       col = as.character(colorkey[i]),
@@ -154,22 +166,22 @@ circos.linksnp <- function(data, ylim = c(0, 1), color.theme = "viridis", track.
       lty = lty
     )
   }
-  ## 显示SNP块颜色
+  ## Select colors for the chromosome blocks.
   if (is.null(bg.col)) {
     bg.col <- rainbow(length(get.all.sector.index()))
   } else {
     bg.col <- bg.col
   }
-  # 显示SNP块
+  # Draw the chromosome blocks.
   circos.track(
     ylim = ylim, track.height = track.height,
     bg.col = bg.col, bg.border = bg.border,
     bg.lty = par("lty"), bg.lwd = par("lwd")
   )
 
-  # 设置字体
+  # Set the font.
   family <- ifelse(is.null(family), "serif", family)
-  # 是否显示图例
+  # Optionally draw the legend.
   if (legend.show) {
     if (is.null(legend.breaks)) {
       legend.breaks <- seq(limits[1], limits[2], length.out = 5)
@@ -181,14 +193,23 @@ circos.linksnp <- function(data, ylim = c(0, 1), color.theme = "viridis", track.
     } else {
       labels <- legend.labels
     }
+    layout <- .circos_legend_layout(labels, legend.fontsize, family)
+    if (!is.null(legend.position)) {
+      if (!is.numeric(legend.position) || length(legend.position) != 2L ||
+          any(!is.finite(legend.position))) stop("legend.position must be NULL or two finite numbers")
+      layout$x <- legend.position[1]
+      layout$y <- legend.position[2]
+    }
+    legend.just <- if (is.null(legend.position)) c("right", "top") else c("center", "center")
     legend <- circos.legendlink(
-      x = legend.position[1], y = legend.position[2], legend.limits = limits,
+      x = layout$x, y = layout$y, width = layout$width, height = layout$height,
+      just = legend.just, legend.limits = limits,
       legend.breaks = legend.breaks, legend.n.breaks = n.breaks, legend.col = link.colors,
       legend.labels = labels, legend.family = family, legend.fontsize = legend.fontsize, ...
     )
     grid.draw(legend)
   }
-  circos.clear() ## 清除参数
+  circos.clear() ## Reset the circos plotting state.
 }
 
 #' circos legend
@@ -202,48 +223,36 @@ circos.linksnp <- function(data, ylim = c(0, 1), color.theme = "viridis", track.
 #' @param legend.col A specification for the default plotting color
 #' @param legend.fontsize numeric; the font size of legend
 #' @param legend.family The font family of legend
-#' @param ... 	other graphical parameters
+#' @param just Legend justification, passed to grid::viewport.
+#' @param ... Additional arguments passed to color_legend.
 #'
-#' @return NULL
+#' @param width Width of the legend color bar, as a grid unit.
+#' @param height Height of the legend color bar, as a grid unit.
+#' @details Uses the built-in color_legend component for the color bar, ticks and label layout.
+#' @return A grid grob containing the legend.
 #' @export
 #'
 
-circos.legendlink <- function(x = x, y = y, legend.limits = c(min, max), legend.n.breaks = legend.n.breaks,
-                              legend.breaks = legend.breaks, legend.labels = legend.labels, legend.col = legend.col,
-                              legend.fontsize = legend.fontsize, legend.family = legend.family, ...) {
-  # 图例标签位置
-  legend_label_pos <- seq(0, 1, length.out = legend.n.breaks)
-  breaks <- seq(legend.limits[1], legend.limits[2], length.out = legend.n.breaks + 1)
-  pos <- cut(legend.breaks, breaks, labels = FALSE, right = TRUE, include.lowest = T)
-  ## 移除可能没有匹配到的标签
-  ind <- pos[!is.na(pos)]
-  legend.labels <- legend.labels[!is.na(pos)]
-
-  right <- rep(1, legend.n.breaks)
-  top <- rep((1:legend.n.breaks) / legend.n.breaks, each = 1)
-  ## 图例视图
-  legend_vp <- viewport(x = x, y = y, width = unit(0.035, "snpc"), height = unit(0.25, "snpc"), name = "legend_vp")
-  legend_rect <- rectGrob(
-    x = right, y = top, width = 1, height = 1 / legend.n.breaks,
-    just = c("right", "top"), name = "legend_rect", gp = gpar(fill = legend.col, col = NA)
+circos.legendlink <- function(x = 0.88, y = 0.5, legend.limits = c(0, 1), legend.n.breaks = 100,
+                              legend.breaks = pretty(legend.limits, n = 4), legend.labels = legend.breaks,
+                              legend.col = viridisLite::viridis(legend.n.breaks, direction = -1),
+                              legend.fontsize = 12, legend.family = "serif",
+                              width = unit(0.035, "snpc"), height = unit(0.25, "snpc"), just = c("center", "center"), ...) {
+  if (!is.numeric(legend.limits) || length(legend.limits) != 2L ||
+      any(!is.finite(legend.limits)) || diff(legend.limits) <= 0)
+    stop("legend.limits must contain two increasing finite numbers")
+  legend.n.breaks <- .whole_number(legend.n.breaks, "legend.n.breaks", 1)
+  if (!is.numeric(legend.breaks) || length(legend.labels) != length(legend.breaks))
+    stop("legend.breaks must be numeric and match legend.labels")
+  if (length(legend.col) != legend.n.breaks) stop("Supply one color per legend interval")
+  keep <- is.finite(legend.breaks) & legend.breaks >= legend.limits[1] & legend.breaks <= legend.limits[2]
+  grob <- color_legend(
+    col_fun = .circos_color_function(legend.limits, legend.col), limits = legend.limits,
+    at = legend.breaks[keep], labels = legend.labels[keep],
+    grid_width = width, legend_height = height, n = max(2L, legend.n.breaks),
+    labels_gp = gpar(fontsize = legend.fontsize, fontfamily = legend.family), ...
   )
-  legend_ticks <- segmentsGrob(
-    x0 = rep(c(0, 1), each = length(legend.labels)),
-    y0 = rep(legend_label_pos[ind], length(legend.labels)),
-    x1 = rep(c(0.15, 0.85), each = length(legend.labels)),
-    y1 = rep(legend_label_pos[ind], length(legend.labels)),
-    gp = gpar(col = "white", lwd = 0.7),
-    name = "legend_ticks"
-  )
-  legend_box <- linesGrob(x = c(0, 1, 1, 0, 0), y = c(0, 0, 1, 1, 0), name = "legend_box", gp = gpar(col = "white"))
-  ## 调整宽度
-  width <- convertUnit(unit(1.5, "lines"), "npc", valueOnly = T)
-  legend_text <- textGrob(legend.labels,
-    x = rep(1, length(legend.labels)) + width, y = legend_label_pos[ind], just = c("left"),
-    gp = gpar(fontsize = legend.fontsize, fontfamily = legend.family),
-    name = "legend_text"
-  )
-
-  legend <- gTree(children = gList(legend_rect, legend_ticks, legend_box, legend_text), vp = legend_vp, name = "legend")
-  legend
+  grob$vp <- viewport(x = x, y = y, width = grob$vp$width, height = grob$vp$height,
+                       just = just, name = "legend_vp")
+  grob
 }

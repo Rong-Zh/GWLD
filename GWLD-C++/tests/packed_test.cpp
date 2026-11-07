@@ -64,6 +64,32 @@ int main() {
                 #endif
             }
         }
+        // Exact counts across NEON's 16-bit accumulator flush boundaries.
+        for (std::size_t samples:{524159,524160,524161,1048321}) {
+            arma::Mat<int> g(samples,4);
+            for (auto& x:g) x=static_cast<int>(random()%3);
+            const auto a=GWLD::summarize(g.colptr(0),samples),b=GWLD::summarize(g.colptr(1),samples);
+            const auto reference=GWLD::count(g.colptr(0),g.colptr(1),samples);
+            GWLD::PackedGenotypes portable,native;
+            portable.build(g,GWLD::count_packed_portable); native.build(g);
+            same_counts(reference,native.count(0,1));
+            same_counts(reference,native.count_complete(0,1,a,b));
+            same_counts(reference,portable.count_complete(0,1,a,b));
+            g.fill(0); native.build(g);
+            same_counts(GWLD::count(g.colptr(0),g.colptr(1),samples),native.count(0,1));
+        }
+        // Complete columns spanning every 1/2/3-category marginal combination.
+        arma::Mat<int> categories(513,9);
+        for (arma::uword j=0;j<categories.n_cols;++j) for (arma::uword i=0;i<categories.n_rows;++i)
+            categories(i,j)=static_cast<int>((random()%(1+j%3)+j/3)%3);
+        for (auto method:{GWLD::Method::MI,GWLD::Method::RMI}) {
+            const GWLD::Engine engine(categories,method);
+            const auto result=engine.matrix(method,1);
+            for (arma::uword j=1;j<categories.n_cols;++j) for (arma::uword i=0;i<j;++i)
+                same(result(i,j),GWLD::pair(categories.colptr(i),categories.colptr(j),categories.n_rows,
+                     GWLD::summarize(categories.colptr(i),categories.n_rows),
+                     GWLD::summarize(categories.colptr(j),categories.n_rows),method));
+        }
         edge(0,0)=3;
         bool rejected=false;
         try { GWLD::PackedGenotypes invalid; invalid.build(edge); } catch(const std::invalid_argument&) {rejected=true;}

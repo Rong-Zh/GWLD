@@ -6,6 +6,8 @@
 #' @details Integer genotypes count non-major alleles. Missing PED alleles (0)
 #' become NA; frequency ties use lexical allele order. No intermediate genotype
 #' strings are constructed for integer output.
+#' Sample names use FID:IID; percent signs and colons within each component
+#' are escaped, and duplicate family/individual pairs are rejected.
 #' @param ... NULL
 #' @importFrom data.table fread
 #' @export
@@ -14,11 +16,12 @@ ped2matrix <- function(FilePrefix, genotype = c("int", "char"), ...) {
   FilePrefix <- path.expand(FilePrefix)
   pedFile <- paste0(FilePrefix, ".ped")
   mapFile <- paste0(FilePrefix, ".map")
-  ## ped文件前六列:FamilyID, IndividualID, PaternalID, MaternalID, Sex(1=male; 2=female),Phenotype
-  ## 从第七列就是碱基基因型数据, 两列为一个基因型
-  ped <- data.table::fread(file = pedFile, data.table = FALSE)
-  ## map文件有四列, CHROM, SNPID, 0, POS
-  map <- data.table::fread(file = mapFile, data.table = FALSE)
+  ## The first six PED columns are family ID, individual ID, paternal ID, maternal ID, sex (1=male; 2=female), and phenotype.
+  ## Genotypes start at column seven, with two allele columns per variant.
+  ped <- data.table::fread(file = pedFile, data.table = FALSE, colClasses = "character", na.strings = NULL, quote = "")
+  ## MAP files contain four columns: CHROM, SNPID, genetic distance, and POS.
+  map <- data.table::fread(file = mapFile, data.table = FALSE, colClasses = "character", na.strings = NULL, quote = "")
+  if (ncol(map) != 4L) stop("MAP must contain four columns")
   SnpInfo <- data.frame(CHROM = map[, 1], POS = as.numeric(map[, 4]), ID = map[, 2])
   if (!nrow(ped) || !nrow(map) || ncol(ped) != 6L + 2L * nrow(map))
     stop("PED must contain six sample fields and two alleles per MAP variant")
@@ -44,8 +47,8 @@ ped2matrix <- function(FilePrefix, genotype = c("int", "char"), ...) {
       }
     }
   }
-  # 添加行名
-  rownames(gt) <- paste(samples[, 1], samples[, 2], sep = ":")
+  # Add sample names.
+  rownames(gt) <- .plink_sample_names(samples[, 1], samples[, 2])
   colnames(gt) <- map[, 2]
   ped_map <- list(Info = SnpInfo, Genotype = gt)
   return(ped_map)
@@ -64,12 +67,18 @@ read.plink <- function(FilePrefix, ...) {
   bedfile <- paste(prefix, ".bed", sep = "")
   famfile <- paste(prefix, ".fam", sep = "")
   bimfile <- paste(prefix, ".bim", sep = "")
-  bim <- read.table(bimfile, header = FALSE, sep = "", stringsAsFactors = FALSE)
-  fam <- read.table(famfile, header = FALSE, sep = "", stringsAsFactors = FALSE)
+  bim <- read.table(bimfile, header = FALSE, sep = "", stringsAsFactors = FALSE, na.strings = NULL, quote = "", comment.char = "",
+                    colClasses = c("character", "character", NA, NA, "character", "character"))
+  fam <- read.table(famfile, header = FALSE, sep = "", stringsAsFactors = FALSE, na.strings = NULL, quote = "", comment.char = "",
+                    colClasses = c("character", "character", NA, NA, NA, NA))
+  if (ncol(fam) != 6L || ncol(bim) != 6L || !nrow(fam) || !nrow(bim))
+    stop("Nonempty FAM and BIM files must each have six columns")
+  sample_names <- .plink_sample_names(fam[, 1], fam[, 2])
   nSample <- nrow(fam)
   bed <- .Call("_GWLD_read_bed", bedfile, nSample, PACKAGE = "GWLD")
+  if (ncol(bed) != nrow(bim)) stop("BED/BIM variant count mismatch")
   colnames(bed) <- bim[, 2]
-  rownames(bed) <- paste(fam[, 1], fam[, 2], sep = ":")
+  rownames(bed) <- sample_names
   plink <- list(bed = bed, bim = bim, fam = fam)
   return(plink)
 }
@@ -103,7 +112,7 @@ bed2matrix <- function(FilePrefix, ...) {
 #' preserved without replacing underscores. Supports biallelic diploid GT.
 #' @export
 vcf2matrix <- function(file, threads = 1L, ...) {
-  .Call("_GWLD_read_vcf_matrix", path.expand(file), as.integer(threads), PACKAGE = "GWLD")
+  .Call("_GWLD_read_vcf_matrix", path.expand(file), .whole_number(threads, "threads"), PACKAGE = "GWLD")
 }
 
 #'  read vcf format file

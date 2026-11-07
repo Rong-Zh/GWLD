@@ -5,7 +5,6 @@
 #include <cstdint>
 #include <cstring>
 #include <limits>
-#include <unordered_map>
 #include <vector>
 
 namespace GWLD {
@@ -19,7 +18,34 @@ class GenotypeEncoder {
     };
     bool delimiters[256]={};
     bool separated;
-    std::unordered_map<SEXP,int> lookup;
+    // Reuse an open-addressed table across columns. R's interned strings are
+    // stable keys; no nodes or input strings need to be allocated per pattern.
+    struct Slot { SEXP key=nullptr; int value=-1; };
+    std::vector<Slot> lookup=std::vector<Slot>(32);
+    static std::size_t hash(SEXP key) {
+        std::uintptr_t value=reinterpret_cast<std::uintptr_t>(key)>>3;
+        value^=value>>17;
+        return static_cast<std::size_t>(value*UINT64_C(0x9e3779b97f4a7c15));
+    }
+    int find(SEXP key) const {
+        std::size_t slot=hash(key)&(lookup.size()-1);
+        while (lookup[slot].key) {
+            if (lookup[slot].key==key) return lookup[slot].value;
+            slot=(slot+1)&(lookup.size()-1);
+        }
+        return -1;
+    }
+    void insert(SEXP key,int value) {
+        if (patterns.size()>=lookup.size()/2) {
+            if (lookup.size()>lookup.max_size()/2) throw std::length_error("Too many distinct genotypes");
+            std::vector<Slot> previous; previous.swap(lookup);
+            lookup.resize(previous.size()*2);
+            for (const auto& entry:previous) if (entry.key) insert(entry.key,entry.value);
+        }
+        std::size_t slot=hash(key)&(lookup.size()-1);
+        while (lookup[slot].key) slot=(slot+1)&(lookup.size()-1);
+        lookup[slot].key=key; lookup[slot].value=value;
+    }
     std::vector<Pattern> patterns;
     std::vector<Allele> alleles;
     R_xlen_t missing=0;
@@ -67,21 +93,21 @@ class GenotypeEncoder {
 public:
     explicit GenotypeEncoder(const std::string& sep) : separated(!sep.empty()) {
         for (unsigned char byte:sep) delimiters[byte]=true;
-        lookup.reserve(16); patterns.reserve(16); alleles.reserve(4);
+        patterns.reserve(16); alleles.reserve(4);
     }
     void analyze(const SEXP* source,R_xlen_t size,int* output=nullptr) {
-        lookup.clear(); patterns.clear(); alleles.clear(); missing=size;
+        for (auto& entry:lookup) entry.key=nullptr;
+        patterns.clear(); alleles.clear(); missing=size;
         for (R_xlen_t i=0;i<size;++i) {
             const SEXP value=source[i];
             if (value==NA_STRING) { if (output) output[i]=-1; continue; }
-            auto found=lookup.find(value);
-            int index;
-            if (found==lookup.end()) {
+            int index=find(value);
+            if (index<0) {
                 if (patterns.size()>=static_cast<std::size_t>(std::numeric_limits<int>::max()))
                     throw std::length_error("Too many distinct genotypes");
                 index=static_cast<int>(patterns.size());
-                patterns.push_back(parse(value)); lookup.emplace(value,index);
-            } else index=found->second;
+                patterns.push_back(parse(value)); insert(value,index);
+            }
             ++patterns[index].count;
             if (output) output[i]=index;
         }

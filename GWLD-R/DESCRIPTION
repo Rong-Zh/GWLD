@@ -10,7 +10,7 @@ Encoding: UTF-8
 License: GPL (>= 2)
 LazyData: true
 Depends: R (>= 4.0)
-Imports: Rcpp, RcppArmadillo, Rhtslib (>= 2.4.0), methods, viridisLite, grid, circlize, data.table
-LinkingTo: Rcpp, RcppArmadillo, Rhtslib
+Imports: Rcpp, RcppArmadillo, methods, viridisLite, grid, circlize, data.table
+LinkingTo: Rcpp, RcppArmadillo, Rhtslib (>= 2.4.0)
 SystemRequirements: GNU make
 RoxygenNote: 7.2.3

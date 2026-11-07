@@ -46,6 +46,8 @@ setGeneric("LD", function(g1, g2, method = "r^2", cores = 1, ...) {
 setMethod("LD",
   signature = (g1 <- "data.frame"),
   function(g1, method = "r^2", cores = 1) {
+    cores <- .whole_number(cores, "cores")
+    method <- .method_name(method)
     res <- .Call("_GWLD_LDC_Mat", as.matrix(g1), method, cores, PACKAGE = "GWLD")
     row.names(res) <- colnames(res) <- colnames(g1)
     return(res)
@@ -56,6 +58,8 @@ setMethod("LD",
 setMethod("LD",
   signature = (g1 <- "matrix"),
   function(g1, method = "r^2", cores = 1) {
+    cores <- .whole_number(cores, "cores")
+    method <- .method_name(method)
     res <- .Call("_GWLD_LDC_Mat", g1, method, cores, PACKAGE = "GWLD")
     row.names(res) <- colnames(res) <- colnames(g1)
     return(res)
@@ -66,6 +70,6 @@ setMethod("LD",
 setMethod("LD",
   signature = c(g1 = "numeric", g2 = "numeric"),
   function(g1, g2, method = "r^2", ...) {
-    .Call("_GWLD_LDC", g1, g2, method, PACKAGE = "GWLD")
+    .Call("_GWLD_LDC", g1, g2, .method_name(method), PACKAGE = "GWLD")
   }
 )

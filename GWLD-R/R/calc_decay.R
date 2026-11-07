@@ -5,16 +5,18 @@
 #' @param method linkage disequilibrium measures
 #' @param cores The number of threads
 #' @param maxdist The maximum distance calculated by pairwise SNP
+#' @param file optional output TSV path; stream in bounded batches instead of returning a matrix
+#' @details Values retain double precision. Streaming files include a header.
+#' Calculations check for interrupts between batches; interrupted files retain
+#' completed rows. cores and maxdist must be whole numbers.
 #'
 #' @rdname calc_decay
 #' @export
 #'
-calc_decay <- function(geno012, snpinfo, method = "RMI", cores = 1, maxdist = 300) {
-  if (method %in% c("D", "D'", "r^2", "MI", "RMI")) {
-    .Call("_GWLD_calc_decay", geno012, as.matrix(snpinfo), method, thread = cores, maxdist = maxdist, PACKAGE = "GWLD")
-  } else {
-    stop("Unknown method! Input one of methods(D, D', r^2, MI, RMI) ")
-  }
+calc_decay <- function(geno012, snpinfo, method = "RMI", cores = 1, maxdist = 300, file = NULL) {
+  result <- .Call("_GWLD_calc_decay", geno012, as.matrix(snpinfo), .method_name(method),
+    .whole_number(cores, "cores"), .whole_number(maxdist, "maxdist", 0L), .pair_output_path(file), PACKAGE = "GWLD")
+  if (is.null(file)) result else invisible(result)
 }
 
 #' @param m  a upper.tri matrix calculated by linkage disequilibrium measures
@@ -25,6 +27,7 @@ calc_decay <- function(geno012, snpinfo, method = "RMI", cores = 1, maxdist = 30
 #'
 #' @export
 #'
-decay <- function(m, snpinfo, maxdist = 300) {
-  .Call("_GWLD_decay", m, as.matrix(snpinfo), maxdist = maxdist, PACKAGE = "GWLD")
+decay <- function(m, snpinfo, maxdist = 300, file = NULL) {
+  result <- .Call("_GWLD_decay", m, as.matrix(snpinfo), .whole_number(maxdist, "maxdist", 0L), .pair_output_path(file), PACKAGE = "GWLD")
+  if (is.null(file)) result else invisible(result)
 }
