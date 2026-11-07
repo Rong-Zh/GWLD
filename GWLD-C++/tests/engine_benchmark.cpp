@@ -4,7 +4,8 @@
 #include <iostream>
 #include <random>
 
-// The b96745b engine's scalar counting path, kept as a measured reference.
+// Scalar counting reference using the current summaries, formulas and solver.
+// This isolates execution paths; it is not a frozen historical-version benchmark.
 arma::Mat<double> scalar_matrix(const arma::Mat<int>& g,GWLD::Method method,int threads) {
     std::vector<GWLD::Summary> summaries;
     for (arma::uword j=0;j<g.n_cols;++j) summaries.push_back(GWLD::summarize(g.n_rows ? g.colptr(j) : nullptr,g.n_rows));

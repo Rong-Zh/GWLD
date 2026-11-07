@@ -5,6 +5,11 @@ from translated comments and qualified references to its historical utilities.
 `utils_reference.cpp` and `utils_reference.h` freeze the original utility
 algorithms in `legacy_reference`. The optional `gwld_benchmark` links these
 frozen utilities so changes to the optimized helpers do not alter its baseline.
+The benchmark accepts samples, variants, threads and missing percentage, covers
+all five measures, warms both paths and reports three-run alternating medians.
+MI/RMI outputs must agree within 1e-10; LD differences are reported because
+the production optimizer intentionally corrects the original solution search.
+Measured 1.x comparisons are recorded in [the performance report](../../../docs/performance.md).
 
 `utils.cpp` and `utils.h` now contain the optimized compatibility helpers:
 const-reference inputs, delimiter lookup, direct file-field parsing, buffered

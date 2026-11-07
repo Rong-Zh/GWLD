@@ -1,0 +1,4 @@
+method	legacy_seconds	optimized_seconds	speedup
+recode	0.13	0.006	21.66667
+stats_freq	0.078	0.005	15.6
+code_Mat	0.139	0.007	19.85714
