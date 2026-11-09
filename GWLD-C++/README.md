@@ -13,7 +13,7 @@ GWLD <command> [options]
 | Command | Purpose |
 | --- | --- |
 | `calculate` | Calculate LD matrices, within-chromosome decay pairs and cross-chromosome circos pairs. |
-| `convert` | Export standard VCF or ALT dosage TSV without calculating LD. |
+| `convert` | Export standard VCF or integer genotype TSV without calculating LD. |
 | `summarize` | Export REF/ALT frequencies and genotype missing rates without calculating LD. |
 
 Use `GWLD --help`, `GWLD calculate --help`, or `GWLD help calculate` for help. `GWLD -V` and `GWLD --version` print the version.
@@ -59,17 +59,17 @@ With no pair or chromosome output selected, `calculate` writes a full matrix. Se
 
 ### Conversion and summary
 
-`convert` accepts `-f, --format vcf|dosage`; the default is `vcf`.
+`convert` accepts `-f, --format vcf|genotype`; the default is `vcf`.
 
 ```bash
 ./build/GWLD convert --ped-prefix example/example-2 --format vcf -o converted
-./build/GWLD convert --vcf example/example-3.vcf --format dosage -o genotypes
+./build/GWLD convert --vcf example/example-3.vcf --format genotype -o genotypes
 ./build/GWLD summarize --bed-prefix example/example -o frequency
 ```
 
 ## Output schemas
 
-Outputs are tab-separated. Pair and matrix files retain the headerless CLI format; dosage and frequency tables have headers. Numerical output uses enough significant digits to round-trip a double.
+Outputs are tab-separated. Pair and matrix files retain the headerless CLI format; genotype and frequency tables have headers. Numerical output uses enough significant digits to round-trip a double.
 
 | File | Layout |
 | --- | --- |
@@ -77,7 +77,7 @@ Outputs are tab-separated. Pair and matrix files retain the headerless CLI forma
 | `PREFIX.chrNAME.heatmap` | Per-chromosome upper-triangular matrix in the original within-chromosome variant order. |
 | `PREFIX.decay` | `ID_1 ID_2 Dist Value`; distance is absolute base-pair distance. |
 | `PREFIX.circos` | `CHR_1 POS_1 ID_1 CHR_2 POS_2 ID_2 Value`. |
-| `PREFIX.dosage.tsv` | `CHROM POS ID REF ALT`, followed by one column per sample containing ALT dosage `0/1/2`, or `NA`. |
+| `PREFIX.genotype.tsv` | `CHROM POS ID REF ALT`, followed by one column per sample containing integer genotype codes `0/1/2`, or `NA`; `0/1/2` count ALT alleles. |
 | `PREFIX.freq.tsv` | `CHROM POS ID REF ALT REF_FREQ ALT_FREQ MISSING_RATE`. |
 | `PREFIX.vcf` | VCF with diploid GT fields. |
 
@@ -88,7 +88,7 @@ An empty pair selection produces an empty file. Pair output order follows the in
 - Missing genotypes are excluded pairwise. A pair with no complete observations returns a missing result.
 - Monomorphic loci yield D = 0 and undefined r²/D′. MI/RMI follow their contingency-table definitions.
 - RMI retains the original whole-locus category-count convention; LD retains the original whole-locus marginal-frequency convention, including when the complete-pair subset is smaller.
-- VCF preserves REF/ALT dosage orientation. BED retains allele-1 dosage: BIM column 6 is REF and column 5 is ALT. PED uses the most frequent allele as REF, with lexical tie breaking.
+- VCF preserves REF/ALT genotype orientation. BED retains allele-1 counting: BIM column 6 is REF and column 5 is ALT. PED uses the most frequent allele as REF, with lexical tie breaking.
 - Signed D depends on allele orientation. Align alleles before comparing values from different formats.
 - PLINK sample names are `FID:IID`. Within each component, `%` becomes `%25` and `:` becomes `%3A`. Numeric-looking identifiers retain leading zeros. Duplicate family/individual pairs are rejected. VCF sample names are retained.
 - The LD optimizer compares feasible stationary points and boundaries for potentially multimodal likelihoods. Certified concave cases use safeguarded Newton iterations with a bracketed fallback. Values can therefore differ from the 1.x optimizer, especially in heterozygote-heavy cases.
@@ -108,7 +108,7 @@ The old flat invocation and legacy flag aliases have been removed.
 | `--bfile` | `--bed-prefix` |
 | `--file` | `--ped-prefix` |
 | `--2vcf` | `convert --format vcf` |
-| `--code012` | `convert --format dosage` |
+| `--code012` | `convert --format genotype` |
 | `--allele-freq` | `summarize` |
 | `--by-chrom` | `calculate --by-chromosome` |
 | `--max-dist` | `calculate --decay --max-distance-kb` |
@@ -148,7 +148,7 @@ No global `-mavx2`, `-mavx512*` or `-march=native` is required. AVX2 byte accumu
 
 Packed counting is enabled for at least 128 samples and four variants; smaller inputs use the scalar path. Packed storage uses three bits per sample/variant, rounded to groups of 64 samples. MI count-log and RMI factorial caches are bounded at 8 MiB each. A separate half-integer log cache, also bounded at 8 MiB, is built only when missing-data workloads can amortize it. These tables use the original mathematical functions, without fast-math approximations.
 
-ARM64 NEON, macOS x86_64 POPCNT and x86 AVX2 under QEMU have been checked against portable counting. AVX-512 has been compiled with GCC and Clang but has not been run on supporting hardware. QEMU checks establish correctness for the exercised paths, not native x86 performance.
+ARM64 NEON, macOS x86_64 POPCNT, x86 AVX2 under QEMU, and native Windows/WSL x86-64 POPCNT and AVX2 have been checked against portable counting. AVX-512 has been compiled with GCC and Clang but has not been run on supporting hardware. Native Windows/WSL timings are included in the [performance report](../docs/performance.md#windows-and-wsl-on-the-same-x86-64-host); QEMU timings are not used for performance claims.
 
 ## Tests
 
@@ -200,4 +200,4 @@ cmake --build build -j
 
 The scalar engine benchmark uses the current solver and formulas, so it isolates counting/caching effects; it is not a frozen 1.x or historical 2.0 binary. The original-version benchmark instead links `tests/legacy/methods.cpp` and `utils_reference.cpp`, preserving the algorithms from `c8079ab`.
 
-See [measured results and methodology](../docs/performance.md), [recorded raw results](../tests/benchmarks/2026-11-07-v1-v2.tsv) and [legacy reference notes](tests/legacy/README.md). Historical 1.x manuals remain in the repository; use this reference and `--help` for 2.0 behavior.
+See [measured results and methodology](../docs/performance.md), [Windows/WSL raw results and reproduction commands](../tests/benchmarks/2026-11-09/README.md), [macOS raw results](../tests/benchmarks/2026-11-07-v1-v2.tsv) and [legacy reference notes](tests/legacy/README.md). Historical 1.x manuals remain in the repository; use this reference and `--help` for 2.0 behavior.

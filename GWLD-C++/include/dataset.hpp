@@ -53,7 +53,7 @@ inline Dataset load_bed(const std::string& prefix) {
         auto row=fields(line); if (row.empty()) continue;
         if (row.size()!=6) throw std::runtime_error("BIM requires six fields");
         data.sites.push_back({row[0],row[1],position(row[3])});
-        // v1 decodes allele-1 dosage: allele 2 is REF (dosage zero).
+        // v1 counts allele 1: allele 2 is REF (genotype code zero).
         data.alleles.push_back({{row[5],row[4]}});
     }
     if (data.sites.empty() || data.samples.empty()) throw std::runtime_error("Empty BIM/FAM");
@@ -134,7 +134,7 @@ inline void write_vcf(const Dataset& data,const std::string& path) {
     }
     out.close();
 }
-inline void write_dosage(const Dataset& data,const std::string& path) {
+inline void write_genotype(const Dataset& data,const std::string& path) {
     auto out=output(path);
     out<<"CHROM\tPOS\tID\tREF\tALT";
     for (const auto& sample:data.samples) out<<'\t'<<sample;

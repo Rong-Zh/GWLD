@@ -15,7 +15,7 @@ bed <- bed2matrix(file.path(fixtures, "example"))
 for (input in list(ped, vcf, bed)) {
   stopifnot(is.integer(input$Genotype), identical(codegeno(input$Genotype), input$Genotype))
 }
-# An encoded ALT dosage must never be encoded again relative to its major allele.
+# An encoded ALT allele count must never be encoded again relative to its major allele.
 fixed <- matrix(c(2L, 2L, 1L, NA_integer_), ncol = 1, dimnames = list(NULL, "alt-major"))
 stopifnot(identical(codegeno(fixed), fixed), identical(codegeno(fixed * 1), fixed))
 for (bad in c(3, -1, 0.5, Inf)) fails(codegeno(matrix(bad, 2, 2)))

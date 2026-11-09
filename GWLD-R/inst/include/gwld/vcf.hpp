@@ -33,7 +33,7 @@ class VcfReader {
     std::unique_ptr<htsFile,Close> file;
     std::unique_ptr<bcf_hdr_t,Header> header;
     std::unique_ptr<bcf1_t,Record> record;
-    std::vector<std::int8_t> dosage;
+    std::vector<std::int8_t> genotype_codes;
     std::size_t ordinal=0;
     int stride=0;
     static bool missing(int32_t value) { return value==bcf_int32_missing || bcf_gt_is_missing(value); }
@@ -52,13 +52,13 @@ class VcfReader {
             if (stride>2 && gt[2]!=bcf_int32_vector_end) fail("only diploid genotypes are supported");
             if (stride<2 || gt[1]==bcf_int32_vector_end) {
                 if (gt[0]==bcf_int32_vector_end || !missing(gt[0])) fail("haploid GT is not supported");
-                dosage[i]=-1; continue; // a single '.' is an entirely missing sample
+                genotype_codes[i]=-1; continue; // a single '.' is an entirely missing sample
             }
             if (gt[0]==bcf_int32_vector_end) fail("invalid GT ploidy");
             const int a=bcf_gt_allele(gt[0]),b=bcf_gt_allele(gt[1]);
             if ((!missing(gt[0]) && (a<0 || a>=record->n_allele)) ||
                 (!missing(gt[1]) && (b<0 || b>=record->n_allele))) fail("GT allele index exceeds REF/ALT");
-            dosage[i]=(missing(gt[0]) || missing(gt[1])) ? -1 : a+b;
+            genotype_codes[i]=(missing(gt[0]) || missing(gt[1])) ? -1 : a+b;
         }
     }
 public:
@@ -82,7 +82,7 @@ public:
         }
         record.reset(bcf_init());
         if (!record) throw std::bad_alloc();
-        dosage.resize(sample_count());
+        genotype_codes.resize(sample_count());
     }
     std::size_t sample_count() const { return static_cast<std::size_t>(bcf_hdr_nsamples(header.get())); }
     std::vector<std::string> sample_names() const {
@@ -120,7 +120,7 @@ public:
     std::array<std::string,2> alleles() const {
         return {{record->d.allele[0],record->n_allele>1 ? record->d.allele[1] : "."}};
     }
-    const std::vector<std::int8_t>& genotypes() const { return dosage; }
+    const std::vector<std::int8_t>& genotypes() const { return genotype_codes; }
     int allele(std::size_t sample,int copy) const {
         if (copy>=stride) return -1;
         const auto value=buffers.gt[sample*stride+copy];

@@ -23,5 +23,5 @@ vcf file to matrix
 \details{
 Uses the shared HTSlib reader. Sample names are preserved unchanged.
 Supports biallelic diploid GT. Unlike version 1.x, Genotype contains integer
-dosages rather than GT text strings.
+genotype codes rather than GT text strings.
 }

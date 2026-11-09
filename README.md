@@ -37,7 +37,7 @@ The table below measures full upper-triangular matrix calculations on macOS arm6
 
 MI/RMI remain numerically equivalent to the original formulas within floating-point rounding. LD values can differ because 2.0 corrects and tightens the likelihood optimization; the benchmark reports those differences separately. Speedups depend on hardware, sample size, allele distribution, missingness and thread count. They describe the calculation stage, not the wall-clock speed of an entire analysis pipeline.
 
-Additional datasets, numerical differences, raw results and reproduction commands are provided in [docs/performance.md](docs/performance.md). AVX-512 functions have been compiled with GCC and Clang, but have not yet been executed on supporting hardware; these timings use Apple Silicon, not x86 SIMD hardware.
+Additional datasets, numerical differences, raw results and reproduction commands are provided in [docs/performance.md](docs/performance.md). The [Windows/WSL comparison](docs/performance.md#windows-and-wsl-on-the-same-x86-64-host), measured on 2026-11-09 on the same i5-12400 host, adds native x86-64 results, thread scaling, VCF/gzip/BGZF/BCF input timings and R encoder measurements. Both platforms passed native POPCNT/AVX2 correctness checks. AVX-512 functions have been compiled with GCC and Clang, but have not yet been executed on supporting hardware.
 
 ## Build the C++ program
 
@@ -101,9 +101,9 @@ Run the following examples from the repository root. Exactly one input option is
 ./build/GWLD calculate --ped-prefix example/example-2 \
   --method rmi --heatmap --decay --circos -o analysis
 
-# Standard VCF, ALT dosage table, and allele-frequency summary.
+# Standard VCF, integer genotype table, and allele-frequency summary.
 ./build/GWLD convert --bed-prefix example/example --format vcf -o converted
-./build/GWLD convert --vcf example/example-3.vcf --format dosage -o genotypes
+./build/GWLD convert --vcf example/example-3.vcf --format genotype -o genotypes
 ./build/GWLD summarize --vcf example/example-3.vcf -o frequencies
 
 ./build/GWLD --help
@@ -115,7 +115,7 @@ Run the following examples from the repository root. Exactly one input option is
 | `.heatmap` | Full matrix storage with values in the upper triangle; diagonal and lower triangle are `nan`. |
 | `.decay` | Within-chromosome pairs: variant IDs, absolute distance in bp and value; no header. |
 | `.circos` | Cross-chromosome pairs exceeding the threshold: two chromosome/position/ID triples and value; no header. |
-| `.dosage.tsv` | Header, variant metadata and per-sample ALT dosages `0/1/2/NA`; this is not a VCF. |
+| `.genotype.tsv` | Header, variant metadata and per-sample integer genotype codes `0/1/2/NA`; `0/1/2` count ALT alleles. This is not a VCF. |
 | `.freq.tsv` | Header, variant metadata, REF/ALT frequencies and genotype missing rate. |
 | `.vcf` | VCF with diploid GT fields. |
 
@@ -186,7 +186,7 @@ calc_circos(g, info, method = "RMI", threshold = 0.1, file = "circos.tsv")
 
 `bed2matrix()` and `ped2matrix()` also return `list(Info, Genotype)` with integer genotypes. The manual VCF transposition and numeric conversion steps used in older examples are unnecessary. `ped2matrix(prefix, genotype = "char")` requests allele strings explicitly; `read.vcf()` retains the character-table interface. `codegeno()` converts diploid allele strings, supports `/` and `|` separators, and preserves already encoded numeric matrices.
 
-VCF dosage counts ALT alleles. BED retains the original allele-1 dosage convention; PED uses the major allele as dosage zero, with lexical tie breaking. Align allele orientation before comparing signed D between formats. PLINK sample names use escaped `FID:IID`, preserve leading zeros and reject duplicate family/individual pairs. VCF sample names are retained.
+VCF genotype codes count ALT alleles. BED retains the original allele-1 counting convention; PED uses the major allele as genotype code zero, with lexical tie breaking. Align allele orientation before comparing signed D between formats. PLINK sample names use escaped `FID:IID`, preserve leading zeros and reject duplicate family/individual pairs. VCF sample names are retained.
 
 Named cached heatmaps must match the supplied variant IDs and order. Matrix and pair computations check for R interrupts between batches. An interrupted streamed file retains completed rows. R pair outputs use double-precision text and include headers when written with `file=`; CLI pair files retain their headerless format.
 

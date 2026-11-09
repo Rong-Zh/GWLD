@@ -1,8 +1,119 @@
 # Performance measurements
 
+Results are retained separately by platform and measurement date:
+
+- [Windows and WSL comparison, 2026-11-09](#windows-and-wsl-on-the-same-x86-64-host).
+- [Original macOS C++ measurements, 2026-11-07](#direct-comparison-with-the-original-implementation).
+- [Original macOS R encoding measurements, 2026-11-07](#r-genotype-encoding-versus-1x).
+
+## Windows and WSL on the same x86-64 host
+
+Measured on **2026-11-09**, using production source at `bca4f90` and the same Intel Core i5-12400 host (12 logical processors). Windows runs are native PE x86-64 executables; WSL runs are Linux executables under WSL2. The original-version baseline remains `c8079ab`, compiled into the same executable as the current engine on each platform.
+
+| Environment | Windows native | WSL2 |
+| --- | --- | --- |
+| OS | Windows 10 Pro 22H2, build 19045.6466 | Ubuntu 24.04; Linux 6.18.58.1-microsoft-standard-WSL2 |
+| C++ compiler | Rtools GCC 14.3.0 | Ubuntu GCC 13.3.0 |
+| Flags | C++17, `-O3 -DNDEBUG -fopenmp` | C++17, `-O3 -DNDEBUG -fopenmp` |
+| Armadillo headers for C++ tests | 15.0.3 | 12.6.7 |
+| HTSlib | Windows static library from Rhtslib 3.8.0 | Bundled Linux x86-64 HTSlib 1.24 |
+| R / Rcpp / RcppArmadillo | 4.6.1 UCRT / 1.1.2 / 15.6.2.1 | 4.3.3 / 1.0.12 / 0.12.8.1.0 |
+| Available x86 paths tested | Portable, automatic dispatch, POPCNT, AVX2 | Portable, automatic dispatch, POPCNT, AVX2 |
+
+Both builds disable Armadillo's BLAS/LAPACK/wrapper, leave runtime CPU dispatch enabled and use neither `-ffast-math` nor global `-march=native`. `OMP_DYNAMIC=FALSE`; requested thread counts are identical. Benchmarks run sequentially, with no other benchmark jobs in parallel. These measurements compare the two installed toolchains, libraries and operating environments together: they do **not** isolate the operating system as the only variable.
+
+### Direct comparison with 1.x
+
+The input generator, seed 2026, workload dimensions and timing protocol are the same on both platforms. Each implementation has one discarded warmup followed by three alternating timed runs; tables report medians. Timings include preprocessing, bit packing, caches, matrix allocation and upper-triangular calculation, but exclude input generation, file I/O and result verification.
+
+**512 samples × 384 variants, 25% missing, one thread** (73,536 pairs):
+
+| Method | Windows 1.x (s) | Windows 2.0 (s) | Speedup | WSL 1.x (s) | WSL 2.0 (s) | Speedup |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| MI | 1.036945 | 0.003889 | 266.7× | 0.946671 | 0.004023 | 235.3× |
+| RMI | 1.109446 | 0.014844 | 74.7× | 0.970964 | 0.008552 | 113.5× |
+| r² | 0.336274 | 0.010687 | 31.5× | 0.291517 | 0.010978 | 26.6× |
+| D | 0.334958 | 0.010404 | 32.2× | 0.286602 | 0.010275 | 27.9× |
+| D′ | 0.343568 | 0.011655 | 29.5× | 0.283622 | 0.010474 | 27.1× |
+
+**4096 samples × 256 variants, 1% missing, four threads** (32,640 pairs):
+
+| Method | Windows 1.x (s) | Windows 2.0 (s) | Speedup | WSL 1.x (s) | WSL 2.0 (s) | Speedup |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| MI | 1.592590 | 0.002611 | 609.9× | 1.595028 | 0.002968 | 537.4× |
+| RMI | 1.625216 | 0.004440 | 366.0× | 1.740673 | 0.003333 | 522.3× |
+| r² | 0.184634 | 0.003144 | 58.7× | 0.166302 | 0.002897 | 57.4× |
+| D | 0.185371 | 0.003381 | 54.8× | 0.181178 | 0.002948 | 61.5× |
+| D′ | 0.173628 | 0.003103 | 56.0× | 0.173605 | 0.003040 | 57.1× |
+
+MI/RMI maximum absolute differences from 1.x are below `1.25e-14`; all comparisons have zero missing-position mismatches. LD uses the corrected optimizer, so differences from 1.x are expected: across these runs, maximum absolute differences are `3.34e-5` for r², `3.88e-5` for D and `1.70e-4` for D′. These are not claims of bitwise equivalence to the original LD solver.
+
+The separate current-solver scalar-versus-packed benchmark gives MI speedups of 42.15× on Windows and 35.30× on WSL, RMI speedups of 13.52× and 18.42×, and LD speedups of approximately 13.3–13.7×. LD results match exactly between those two paths; MI/RMI differences are below `6.46e-15`. This comparison isolates current execution paths rather than reconstructing a historical version.
+
+### Current-version thread scaling
+
+**512 samples × 2048 variants, 25% missing** (2,096,128 pairs), one discarded warmup followed by three timed runs. Input generation and binary matrix export are outside the timed region.
+
+| Method | Threads | Windows (s) | WSL (s) |
+| --- | ---: | ---: | ---: |
+| MI | 1 | 0.092852 | 0.100071 |
+| MI | 4 | 0.029873 | 0.033718 |
+| MI | 12 | 0.017699 | 0.029103 |
+| RMI | 1 | 0.403337 | 0.221236 |
+| RMI | 4 | 0.124099 | 0.071806 |
+| RMI | 12 | 0.094900 | 0.058847 |
+| r² | 1 | 0.293537 | 0.304253 |
+| r² | 4 | 0.084551 | 0.091440 |
+| r² | 12 | 0.048979 | 0.060518 |
+
+At 12 threads, the speedups over each platform's own single-thread run are 5.25× / 3.44× for MI, 4.25× / 3.76× for RMI and 5.99× / 5.03× for r² (Windows / WSL). Windows is faster for MI on this workload, WSL is faster for RMI, and single-thread r² times are close. No universal Windows-versus-WSL speed ranking follows from these results. Scheduling and timer noise matter especially for millisecond-scale runs.
+
+### VCF parsing and complete summary commands
+
+Both platforms read the **same files on the E: drive**, accessed through `/mnt/e` in WSL. The uncompressed input contains 512 samples and 12,000 variants, uses GT:DP fields and is 41,836,454 bytes. It repeats four genotype patterns, making the compressed files unusually small; this is not a representative compression ratio for biological data. Input SHA256 is recorded with the [reproduction notes](../tests/benchmarks/2026-11-09/README.md).
+
+Reader-only comparison, three alternating runs, including opening, parsing, metadata and integer-matrix construction:
+
+| Environment | Legacy stream (s) | HTSlib (s) | Speedup |
+| --- | ---: | ---: | ---: |
+| Windows | 0.621250 | 0.213558 | 2.91× |
+| WSL | 1.201190 | 0.285397 | 4.21× |
+
+Decoded genotypes and metadata agree with the stream reference on both platforms. Complete `GWLD summarize` commands include process startup, reading, frequency calculation and output writing; one warmup is discarded, then three executions are timed:
+
+| Format | Input bytes | Windows, 1 thread (s) | Windows, 4 threads (s) | WSL, 1 thread (s) | WSL, 4 threads (s) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| VCF | 41,836,454 | 0.253181 | 0.259345 | 0.322848 | 0.324592 |
+| Ordinary gzip VCF | 182,685 | 0.274629 | 0.280069 | 0.226802 | 0.226164 |
+| BGZF VCF | 252,298 | 0.292762 | 0.272826 | 0.219841 | 0.221570 |
+| BCF | 169,452 | 0.086174 | 0.080461 | 0.079201 | 0.077678 |
+
+These are warm-cache measurements, not cold-disk throughput tests. Small compressed inputs show little benefit from extra decompression threads. WSL's mounted-drive access, differing HTSlib/compression libraries and process-startup costs all affect these complete-command timings.
+
+### R encoding and correctness evidence
+
+The R encoding comparison uses the same 2,000,000-genotype workload and seed as the macOS benchmark below. Both the current and original encoder are compiled directly with `Rcpp::sourceCpp`; no complete GWLD package installation is required. Each of the three alternating timed batches executes an operation 20 times, then elapsed time is divided by 20 and the median is reported. Batching avoids zero-duration readings on the Windows elapsed-time clock. Compilation and garbage collection before each batch are excluded; allocations and any garbage collection within a batch are included. Full output and attribute equality is checked after every batch.
+
+| Operation | Windows 1.x (s/call) | Windows 2.0 (s/call) | Speedup | WSL 1.x (s/call) | WSL 2.0 (s/call) | Speedup |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| `recode` | 0.149500 | 0.014000 | 10.68× | 0.143400 | 0.013350 | 10.74× |
+| `stats_freq` | 0.088000 | 0.007500 | 11.73× | 0.084800 | 0.007200 | 11.78× |
+| `code_Mat` | 0.165000 | 0.015500 | 10.65× | 0.149650 | 0.013700 | 10.92× |
+
+R uses each installation's normal package-compilation flags, rather than the standalone C++ benchmark flags. R, Rcpp and RcppArmadillo versions differ as recorded above. These are encoder measurements, not full R analysis or plotting timings. Full Windows R package installation was not validated in this run because `circlize` was unavailable; the direct-source benchmark does not need it.
+
+Correctness evidence for these runs:
+
+- Windows core, packed and SIMD executables passed. WSL CTest passed all five tests (`utils`, `simd`, `packed`, `core`, `cli`). Native POPCNT and AVX2 paths were executed on both platforms; AVX-512 was not available on this host.
+- Every single-thread output cell was compared between the Windows and WSL 2048-variant matrices: 2,096,128 finite pairs per method, with matching missing positions. MI and r² are identical; RMI maximum absolute difference is `8.41e-15`. These checks compare values, not just checksums. Within each platform, thread-count checksums also agree.
+- All 16 complete frequency outputs (two platforms × four formats × two thread counts) match after normalizing Windows CRLF and Linux LF line endings.
+- The R encoding benchmark checked complete outputs and attributes after every timed batch.
+
+Raw C++ timings, R timings, test logs and cross-platform result checks are archived in [the dated results directory](../tests/benchmarks/2026-11-09/README.md), together with exact commands and environment details. The existing macOS results below remain a separate historical measurement; they were not rerun on this x86-64 host.
+
 ## Direct comparison with the original implementation
 
-The baseline is commit `c8079ab`, the pre-rewrite 1.x code retained on `master`. It is not the first commit in the repository's history and is not an intermediate 2.0 implementation. The current production kernels measured here are from `c77d8f4`. The expanded benchmark harness and these measurements accompany this documentation update.
+The baseline is commit `c8079ab`, the pre-rewrite 1.x code retained on `master`. It is not the first commit in the repository's history and is not an intermediate 2.0 implementation. The production kernels in the following macOS measurements are from `c77d8f4`.
 
 `GWLD-C++/tests/legacy/methods.cpp` retains the calculation algorithms from that baseline, with translated comments and references qualified to the frozen `legacy_reference` utilities. Those utilities are kept separately from the optimized compatibility helpers so subsequent utility changes cannot silently accelerate the baseline. The R encoding reference likewise retains `c8079ab`'s implementation with comment-only changes.
 
@@ -103,7 +214,7 @@ Intermediate 2.0-to-2.0 optimization measurements are intentionally not used as 
 
 Full matrices remain O(variants²) in storage and pair count. Pair-only decay output avoids allocating a full matrix and restricts work to a chromosome/distance window, while input genotypes remain resident. The benefit depends on the number of eligible pairs; there is no universal end-to-end speedup implied by the kernel tables.
 
-Native ARM64 NEON, scalar fallbacks, macOS x86_64 POPCNT and x86 AVX2 under QEMU have correctness checks. AVX-512 functions compile with GCC and Clang but have not yet run on supporting hardware. QEMU timings are not used for performance claims. These measurements therefore do not quantify Intel/AMD SIMD acceleration.
+Native ARM64 NEON, scalar fallbacks, macOS x86_64 POPCNT, x86 AVX2 under QEMU, and native Windows/WSL x86-64 POPCNT and AVX2 have correctness checks. AVX-512 functions compile with GCC and Clang but have not yet run on supporting hardware. QEMU timings are not used for performance claims. The Windows/WSL timings above exercise native x86 dispatch, but do not isolate the speedup of one SIMD instruction set over another.
 
 For a reproducible explanation of the LD differences, see [independent optimizer verification](../tests/ld/README.md). It includes raw genotype export, a base-R likelihood oracle and recorded per-case evidence.
 

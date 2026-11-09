@@ -47,8 +47,8 @@ if (nzchar(converter)) {
 cli <- Sys.getenv("GWLD_TEST_CLI")
 if (nzchar(cli)) {
   prefix <- file.path(root,"cli")
-  stopifnot(system2(cli,c("convert","--vcf",shQuote(gzip),"--format","dosage","-o",shQuote(prefix)))==0L)
-  codes <- as.matrix(read.table(paste0(prefix,".dosage.tsv"),header=TRUE,comment.char="",check.names=FALSE)[,6:9])
+  stopifnot(system2(cli,c("convert","--vcf",shQuote(gzip),"--format","genotype","-o",shQuote(prefix)))==0L)
+  codes <- as.matrix(read.table(paste0(prefix,".genotype.tsv"),header=TRUE,comment.char="",check.names=FALSE)[,6:9])
   near(t(codes),expected)
   stopifnot(system2(cli,c("calculate","--vcf",shQuote(gzip),"--method","mi","--heatmap","--decay","-o",shQuote(prefix)))==0L)
   near(as.matrix(read.table(paste0(prefix,".heatmap"))),GWLD(expected,method="MI"))

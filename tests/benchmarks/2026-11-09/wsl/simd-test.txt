@@ -1,0 +1,1 @@
+Validated kernels: portable automatic popcnt avx2; exact counts, missing values, tails and accumulator boundaries passed

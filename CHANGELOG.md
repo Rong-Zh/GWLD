@@ -32,10 +32,10 @@
 ### Compatibility changes
 
 - Replace the flat CLI with `calculate`, `convert` and `summarize` subcommands. Remove old flag aliases.
-- Write dosage tables as `.dosage.tsv`, distinct from valid VCF output; write frequency summaries as `.freq.tsv`.
+- Export integer genotype tables with `convert --format genotype` as `.genotype.tsv`, distinct from valid VCF output; write frequency summaries as `.freq.tsv`.
 - Require C++17 in CMake and R build configurations.
 - Keep existing R function names, but return direct integer data from `vcf2matrix()` and by default from `ped2matrix()`; request `genotype = "char"` for PED allele strings.
-- Preserve numeric genotype dosage orientation in `codegeno()`; do not recode existing numeric input against its major allele.
+- Preserve numeric genotype allele orientation in `codegeno()`; do not recode existing numeric input against its major allele.
 - LD values may change because the optimizer now selects the appropriate likelihood solution. Allele orientation still matters for signed D.
 
 ### Documentation and validation

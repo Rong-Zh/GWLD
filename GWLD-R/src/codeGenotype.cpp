@@ -164,7 +164,7 @@ Rcpp::List stats_freq(Rcpp::CharacterVector& vector,std::string sep) {
     return encoder.frequencies(vector.size());
 }
 
-//' Convert diploid character genotypes to major-allele dosages
+//' Convert diploid character genotypes to integer genotype codes
 //' @param vector a character vector of genotypes
 //' @param sep separator characters (for example "", "/", or "/|")
 //' @details Outputs 0 for two major alleles, 1 for one, 2 for none, and NA for

@@ -1,0 +1,5 @@
+R version 4.3.3 (2024-02-29) 
+Rcpp 1.0.12 
+RcppArmadillo 0.12.8.1.0 
+Rhtslib 2.4.1 
+RNG: Mersenne-Twister Inversion Rejection 

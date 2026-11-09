@@ -12,7 +12,7 @@ stats_freq <- function(vector, sep) {
     .Call(`_GWLD_stats_freq`, vector, sep)
 }
 
-#' Convert diploid character genotypes to major-allele dosages
+#' Convert diploid character genotypes to integer genotype codes
 #' @param vector a character vector of genotypes
 #' @param sep separator characters (for example "", "/", or "/|")
 #' @details Outputs 0 for two major alleles, 1 for one, 2 for none, and NA for

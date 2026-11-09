@@ -1,0 +1,16 @@
+Internal ctest changing into directory: /mnt/e/devel/GWLD/build-wsl-speed
+Test project /mnt/e/devel/GWLD/build-wsl-speed
+    Start 1: utils
+1/5 Test #1: utils ............................   Passed    0.08 sec
+    Start 2: simd
+2/5 Test #2: simd .............................   Passed    0.50 sec
+    Start 3: packed
+3/5 Test #3: packed ...........................   Passed    0.15 sec
+    Start 4: core
+4/5 Test #4: core .............................   Passed    0.12 sec
+    Start 5: cli
+5/5 Test #5: cli ..............................   Passed    0.89 sec
+
+100% tests passed, 0 tests failed out of 5
+
+Total Test time (real) =   1.78 sec

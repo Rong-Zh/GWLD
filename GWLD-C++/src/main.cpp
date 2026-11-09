@@ -115,8 +115,8 @@ int execute(const Options& options) {
     const double threshold=options.circos_threshold;
     if (!std::isfinite(threshold)) throw std::invalid_argument("--circos-threshold must be finite");
     if (options.prefix.empty()) throw std::invalid_argument("--output-prefix must not be empty");
-    if (options.command==Command::Convert && options.format!="vcf" && options.format!="dosage")
-        throw std::invalid_argument("--format must be vcf or dosage");
+    if (options.command==Command::Convert && options.format!="vcf" && options.format!="genotype")
+        throw std::invalid_argument("--format must be vcf or genotype");
     #if !defined(_OPENMP) || defined(GWLD_NO_OPENMP)
     if (threads>1) throw std::invalid_argument("This build has no OpenMP support; use --threads 1");
     #endif
@@ -126,7 +126,7 @@ int execute(const Options& options) {
     std::cerr<<"GWLD 2.0.0: "<<data.samples.size()<<" samples, "<<data.sites.size()<<" variants\n";
     if (options.command==Command::Convert) {
         if (options.format=="vcf") write_vcf(data,prefix+".vcf");
-        else write_dosage(data,prefix+".dosage.tsv");
+        else write_genotype(data,prefix+".genotype.tsv");
         return 0;
     }
     if (options.command==Command::Frequency) { frequency_file(data,prefix+".freq.tsv"); return 0; }
@@ -184,19 +184,19 @@ int run(int argc,char* argv[]) {
     compute.add_optional<double>("circos-threshold","Minimum exclusive circos value (requires --circos)",0.1);
     compute.add_flag("by-chromosome","Write a heatmap for each chromosome");
     compute.add_flag("heatmap","Write the full LD matrix (default when no other LD output is selected)");
-    auto& convert=parser.add_subcommand("convert","Convert genotypes to VCF or dosage TSV",[](ArgumentOptions& args) {
+    auto& convert=parser.add_subcommand("convert","Convert genotypes to VCF or genotype TSV",[](ArgumentOptions& args) {
         auto options=common_options(args,Command::Convert);
         options.format=args.get<std::string>("format");
         return execute(options);
     });
     common_arguments(convert);
-    convert.add_optional<std::string>('f',"format","Output format: vcf or dosage","vcf");
+    convert.add_optional<std::string>('f',"format","Output format: vcf or genotype","vcf");
     auto& frequency=parser.add_subcommand("summarize","Write allele frequencies and missing rates",[](ArgumentOptions& args) {
         return execute(common_options(args,Command::Frequency));
     });
     common_arguments(frequency);
     parser.footnote("Examples:\n  GWLD calculate --bed-prefix example/example --method rmi --threads 4 -o result\n"
-                    "  GWLD convert --vcf input.vcf.gz --format dosage -o result\n"
+                    "  GWLD convert --vcf input.vcf.gz --format genotype -o result\n"
                     "  GWLD summarize --ped-prefix example/example-2 -o result\n"
                     "Use GWLD <command> --help for command options.");
     if (!parser.parse_args(argc,argv)) return 0;

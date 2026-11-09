@@ -62,9 +62,9 @@ class CLI(unittest.TestCase):
         self.run_cli('calculate', '-v', self.vcf, '-m', 'dprime', '-t', '1', '-o', 'short')
         self.run_cli('calculate', '--vcf', self.vcf, '--method', 'dprime', '--threads', '1', '--output-prefix', 'long')
         self.assertEqual((self.root/'short.heatmap').read_text(), (self.root/'long.heatmap').read_text())
-        self.run_cli('convert', '-b', EXAMPLES/'example', '-f', 'dosage', '-o', 'short-bed')
+        self.run_cli('convert', '-b', EXAMPLES/'example', '-f', 'genotype', '-o', 'short-bed')
         self.run_cli('convert', '-p', EXAMPLES/'example-2', '-f', 'vcf', '-o', 'short-ped')
-        self.assertTrue((self.root/'short-bed.dosage.tsv').exists())
+        self.assertTrue((self.root/'short-bed.genotype.tsv').exists())
         self.assertTrue((self.root/'short-ped.vcf').exists())
     def test_heatmap_and_streaming(self):
         for method in ['mi', 'rmi', 'r2', 'd', 'dprime']:
@@ -85,9 +85,9 @@ class CLI(unittest.TestCase):
             self.run_cli('convert', flag, EXAMPLES/name, '--format', 'vcf', '-o', 'convert')
             target = self.root/'convert.vcf'
             self.assertTrue(target.read_text().startswith('##fileformat=VCFv4.2'))
-            self.run_cli('convert', flag, EXAMPLES/name, '--format', 'dosage', '-o', 'original')
-            self.run_cli('convert', '--vcf', target, '--format', 'dosage', '-o', 'roundtrip')
-            self.assertEqual((self.root/'original.dosage.tsv').read_text(), (self.root/'roundtrip.dosage.tsv').read_text())
+            self.run_cli('convert', flag, EXAMPLES/name, '--format', 'genotype', '-o', 'original')
+            self.run_cli('convert', '--vcf', target, '--format', 'genotype', '-o', 'roundtrip')
+            self.assertEqual((self.root/'original.genotype.tsv').read_text(), (self.root/'roundtrip.genotype.tsv').read_text())
             self.run_cli('calculate', '--vcf', target, '--method', 'mi', '-o', 'reread')
             self.assertTrue((self.root/'reread.heatmap').exists())
             self.run_cli('summarize', flag, EXAMPLES/name)
@@ -97,27 +97,27 @@ class CLI(unittest.TestCase):
     def test_compressed_and_bcf(self):
         # BCF's coordinate representation is narrower than text VCF's.
         self.vcf.write_text(self.vcf.read_text().replace('5000000000', '500000'))
-        self.run_cli('convert', '--vcf', self.vcf, '--format', 'dosage', '-o', 'plain')
-        expected = (self.root/'plain.dosage.tsv').read_text()
+        self.run_cli('convert', '--vcf', self.vcf, '--format', 'genotype', '-o', 'plain')
+        expected = (self.root/'plain.genotype.tsv').read_text()
         self.assertFalse((self.root/'plain.vcf').exists())
         self.assertFalse((self.root/'plain.heatmap').exists())
         compressed = self.root/'ordinary.vcf.gz'
         compressed.write_bytes(gzip.compress(self.vcf.read_bytes()))
-        self.run_cli('convert', '--vcf', compressed, '--format', 'dosage', '-o', 'gzip')
-        self.assertEqual((self.root/'gzip.dosage.tsv').read_text(), expected)
+        self.run_cli('convert', '--vcf', compressed, '--format', 'genotype', '-o', 'gzip')
+        self.assertEqual((self.root/'gzip.genotype.tsv').read_text(), expected)
         if CONVERTER:
             for suffix, mode in [('bgzf.vcf.gz', 'wz'), ('binary.bcf', 'wb')]:
                 path = self.root/suffix
                 subprocess.run([str(CONVERTER), str(self.vcf), str(path), mode], check=True)
-                self.run_cli('convert', '--vcf', path, '--format', 'dosage', '--threads', '2' if OPENMP else '1', '-o', 'converted')
-                self.assertEqual((self.root/'converted.dosage.tsv').read_text(), expected)
+                self.run_cli('convert', '--vcf', path, '--format', 'genotype', '--threads', '2' if OPENMP else '1', '-o', 'converted')
+                self.assertEqual((self.root/'converted.genotype.tsv').read_text(), expected)
     def test_genotype_edge_cases(self):
         header = self.vcf.read_text().split('#CHROM')[0] + '#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\ts1\ts2\ts3\ts4\n'
         self.vcf.write_text(header + '1\t1\ta\tA\tC\t.\t.\t.\tDP:GT\t2:1/0\t3:0|.\t.\t2:1|1')
-        self.run_cli('convert', '--vcf', self.vcf, '--format', 'dosage')
-        dosage = (self.root/'gwld.dosage.tsv').read_text().splitlines()
-        self.assertEqual(dosage[0].split('\t'), ['CHROM', 'POS', 'ID', 'REF', 'ALT', 's1', 's2', 's3', 's4'])
-        self.assertEqual(dosage[-1].split('\t')[5:], ['1', 'NA', 'NA', '2'])
+        self.run_cli('convert', '--vcf', self.vcf, '--format', 'genotype')
+        genotype = (self.root/'gwld.genotype.tsv').read_text().splitlines()
+        self.assertEqual(genotype[0].split('\t'), ['CHROM', 'POS', 'ID', 'REF', 'ALT', 's1', 's2', 's3', 's4'])
+        self.assertEqual(genotype[-1].split('\t')[5:], ['1', 'NA', 'NA', '2'])
         self.run_cli('summarize', '--vcf', self.vcf, '-o', 'frequency')
         freq = (self.root/'frequency.freq.tsv').read_text().splitlines()
         self.assertEqual(freq[0].split('\t'), ['CHROM', 'POS', 'ID', 'REF', 'ALT', 'REF_FREQ', 'ALT_FREQ', 'MISSING_RATE'])
@@ -128,7 +128,7 @@ class CLI(unittest.TestCase):
                           '0/0\t0/1\t1/1\t./.\t0/0']:
             with self.subTest(genotypes=genotypes):
                 self.vcf.write_text(header + '1\t1\ta\tA\tC\t.\t.\t.\tGT\t' + genotypes + '\n')
-                self.run_cli('convert', '--vcf', self.vcf, '--format', 'dosage', success=False)
+                self.run_cli('convert', '--vcf', self.vcf, '--format', 'genotype', success=False)
     def test_chromosomes_and_empty(self):
         self.run_cli('calculate', '--vcf', self.vcf, '--by-chromosome', '-o', 'chrom')
         self.assertEqual(len((self.root/'chrom.chr1.heatmap').read_text().splitlines()), 3)
@@ -158,9 +158,9 @@ class CLI(unittest.TestCase):
             self.run_cli('convert', flag, prefix, '--format', 'vcf', '-o', 'identity')
             header = (self.root/'identity.vcf').read_text().splitlines()[2]
             self.assertEqual(header.split('\t')[9:], ['f1:sample','f2:sample','f%3A3:sample%25'])
-            self.run_cli('convert', flag, prefix, '--format', 'dosage', '-o', 'before')
-            self.run_cli('convert', '--vcf', self.root/'identity.vcf', '--format', 'dosage', '-o', 'after')
-            self.assertEqual((self.root/'before.dosage.tsv').read_text(), (self.root/'after.dosage.tsv').read_text())
+            self.run_cli('convert', flag, prefix, '--format', 'genotype', '-o', 'before')
+            self.run_cli('convert', '--vcf', self.root/'identity.vcf', '--format', 'genotype', '-o', 'after')
+            self.assertEqual((self.root/'before.genotype.tsv').read_text(), (self.root/'after.genotype.tsv').read_text())
         prefix.with_suffix('.fam').write_text(samples[0]+'\n'+samples[0]+'\n'+samples[2]+'\n')
         prefix.with_suffix('.ped').write_text(samples[0]+' A A\n'+samples[0]+' G G\n'+samples[2]+' A G\n')
         for flag in ['--bed-prefix','--ped-prefix']:

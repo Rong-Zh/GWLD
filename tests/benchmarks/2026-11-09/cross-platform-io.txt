@@ -1,0 +1,1 @@
+All 16 Windows/WSL VCF, gzip, BGZF and BCF frequency outputs match after CRLF/LF normalization.

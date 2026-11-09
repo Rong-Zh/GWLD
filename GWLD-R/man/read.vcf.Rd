@@ -22,5 +22,5 @@ read vcf format file
 \details{
 Uses the same HTSlib reader as vcf2matrix. Text fields are formatted by HTSlib
 and may be normalized rather than preserving the original byte representation.
-Use vcf2matrix for direct integer dosage input to GWLD calculations.
+Use vcf2matrix for direct integer genotype input to GWLD calculations.
 }
