@@ -47,6 +47,16 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// parse_positions
+Rcpp::RObject parse_positions(Rcpp::CharacterVector values);
+RcppExport SEXP _GWLD_parse_positions(SEXP valuesSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::traits::input_parameter< Rcpp::CharacterVector >::type values(valuesSEXP);
+    rcpp_result_gen = Rcpp::wrap(parse_positions(values));
+    return rcpp_result_gen;
+END_RCPP
+}
 // read_bed
 arma::Mat<int> read_bed(std::string bedfile, int nSample);
 RcppExport SEXP _GWLD_read_bed(SEXP bedfileSEXP, SEXP nSampleSEXP) {
@@ -235,6 +245,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_GWLD_stats_freq", (DL_FUNC) &_GWLD_stats_freq, 2},
     {"_GWLD_recode", (DL_FUNC) &_GWLD_recode, 2},
     {"_GWLD_code_Mat", (DL_FUNC) &_GWLD_code_Mat, 2},
+    {"_GWLD_parse_positions", (DL_FUNC) &_GWLD_parse_positions, 1},
     {"_GWLD_read_bed", (DL_FUNC) &_GWLD_read_bed, 2},
     {"_GWLD_read_vcf_matrix", (DL_FUNC) &_GWLD_read_vcf_matrix, 2},
     {"_GWLD_read_vcf", (DL_FUNC) &_GWLD_read_vcf, 2},

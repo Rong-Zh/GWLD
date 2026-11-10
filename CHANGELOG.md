@@ -1,5 +1,13 @@
 # Changelog
 
+## Unreleased — assembly review, 2026-11-10
+
+- Match x86 SIMD dispatch to the instructions emitted by Clang: vector kernels now explicitly require scalar POPCNT and AVX2; the AVX-512 path additionally requires AVX512F/VPOPCNTDQ. CPUs with POPCNT masked fall back safely.
+- Parse decimal coordinate text exactly, preserving integers above 2^53 and rejecting tiny fractional parts instead of rounding them to integers. Integral scientific notation remains supported.
+- Preserve oversized R reader coordinates as exact text, while retaining numeric POS columns for ordinary genomic coordinates; validate MAP/BIM positions before numeric coercion.
+- Add reproducible native/x86 assembly probes, feature-selection regression checks, 1,000 exact coordinate round trips and CLI/R coordinate tests.
+- Record the review evidence and hardware-validation limits in `tests/assembly/README.md`.
+
 ## 2.0.0 — rewrite branch, updated 2026-11-07
 
 ### Computation and performance

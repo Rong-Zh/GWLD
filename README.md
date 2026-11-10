@@ -186,6 +186,8 @@ calc_circos(g, info, method = "RMI", threshold = 0.1, file = "circos.tsv")
 
 `bed2matrix()` and `ped2matrix()` also return `list(Info, Genotype)` with integer genotypes. The manual VCF transposition and numeric conversion steps used in older examples are unnecessary. `ped2matrix(prefix, genotype = "char")` requests allele strings explicitly; `read.vcf()` retains the character-table interface. `codegeno()` converts diploid allele strings, supports `/` and `|` separators, and preserves already encoded numeric matrices.
 
+Reader POS columns are numeric for ordinary coordinates. If any coordinate exceeds 2^53, the whole POS column uses exact decimal text. Fractional or out-of-range MAP/BIM coordinates are rejected.
+
 VCF genotype codes count ALT alleles. BED retains the original allele-1 counting convention; PED uses the major allele as genotype code zero, with lexical tie breaking. Align allele orientation before comparing signed D between formats. PLINK sample names use escaped `FID:IID`, preserve leading zeros and reject duplicate family/individual pairs. VCF sample names are retained.
 
 Named cached heatmaps must match the supplied variant IDs and order. Matrix and pair computations check for R interrupts between batches. An interrupted streamed file retains completed rows. R pair outputs use double-precision text and include headers when written with `file=`; CLI pair files retain their headerless format.
@@ -233,6 +235,8 @@ Rscript tests/paper/paper_2023.R build/paper-validation 2
 ```
 
 It checks 1,770 pairs from the packaged duck subset against independent calculations. This validates the subset and example workflow; it does not reproduce all species, full datasets or performance results in the paper. Sources, thresholds and output descriptions are in [tests/paper/README.md](tests/paper/README.md).
+
+The [2026-11-10 assembly-assisted review](tests/assembly/README.md) records emitted SIMD instructions, corrected POPCNT dispatch requirements, exact coordinate parsing and reproduction commands.
 
 ## Repository layout
 

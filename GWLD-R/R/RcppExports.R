@@ -27,6 +27,10 @@ code_Mat <- function(Matrix, sep) {
     .Call(`_GWLD_code_Mat`, Matrix, sep)
 }
 
+parse_positions <- function(values) {
+    .Call(`_GWLD_parse_positions`, values)
+}
+
 read_bed <- function(bedfile, nSample) {
     .Call(`_GWLD_read_bed`, bedfile, nSample)
 }

@@ -1,0 +1,126 @@
+{
+  "date": "2026-11-10",
+  "base_revision": "bb2a303",
+  "reports": [
+    {
+      "compiler": "Homebrew clang version 22.1.8",
+      "host": "arm64",
+      "arch": "native",
+      "instructions": {
+        "_gwld_neon_four_probe": {
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 8,
+          "neon_pair_accumulate": 4
+        },
+        "__ZN4GWLD15count_four_neonEPKyS1_m": {
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 8,
+          "neon_pair_accumulate": 4
+        },
+        "__ZN4GWLD17count_packed_neonILb0EEENS_6CountsEPKyS3_m": {
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 18,
+          "neon_pair_accumulate": 9
+        },
+        "__ZN4GWLD21count_packed_portableEPKyS1_m": {
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 27,
+          "neon_pair_accumulate": 18
+        },
+        "__ZN4GWLD19count_four_portableEPKyS1_m": {
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 12,
+          "neon_pair_accumulate": 8
+        },
+        "__ZN4GWLD19count_packed_nativeEPKyS1_m": {
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 27,
+          "neon_pair_accumulate": 18
+        },
+        "__ZN4GWLD17count_four_nativeEPKyS1_m": {
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 12,
+          "neon_pair_accumulate": 8
+        }
+      }
+    },
+    {
+      "compiler": "Homebrew clang version 22.1.8",
+      "host": "arm64",
+      "arch": "x86_64",
+      "instructions": {
+        "__ZN4GWLD21count_packed_portableEPKyS1_m": {
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD19count_packed_avx512ILb0EEENS_6CountsEPKyS3_m": {
+          "scalar_popcnt": 3,
+          "vector_popcnt": 21,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD17count_packed_avx2ILb0EEENS_6CountsEPKyS3_m": {
+          "scalar_popcnt": 3,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 54,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD19count_packed_nativeEPKyS1_m": {
+          "scalar_popcnt": 9,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD19count_four_portableEPKyS1_m": {
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD15count_four_avx2EPKyS1_m": {
+          "scalar_popcnt": 4,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 56,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD17count_four_avx512EPKyS1_m": {
+          "scalar_popcnt": 4,
+          "vector_popcnt": 14,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD17count_four_nativeEPKyS1_m": {
+          "scalar_popcnt": 4,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        }
+      }
+    }
+  ],
+  "host": "macOS arm64"
+}

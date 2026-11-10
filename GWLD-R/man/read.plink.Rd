@@ -17,3 +17,7 @@ list
 \description{
 read plink format(.bed, .bim, .fam)
 }
+\details{
+Positions are validated exactly. Position columns normally use numeric storage,
+switching to decimal text if any position exceeds 2^53.
+}

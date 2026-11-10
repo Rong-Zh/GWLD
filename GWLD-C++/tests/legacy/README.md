@@ -15,8 +15,8 @@ Measured 1.x comparisons are recorded in [the performance report](../../../docs/
 const-reference inputs, delimiter lookup, direct file-field parsing, buffered
 numeric writing, shared vectorizable genotype counts, and checked metadata
 selection. Valid rectangular output retains the original trailing delimiters
-and six significant digits. Recent C++17 libraries use `to_chars`; older
-language/library configurations retain the classic-locale stream formatter.
+and six significant digits. Recent C++17 libraries use `to_chars`; other supported
+C++17 library configurations retain the classic-locale stream formatter.
 Empty output is supported, invalid input throws, and the final chromosome
 is no longer lost when it starts on the last row. SNP metadata selection
 returns exactly the requested columns, including selections other than three.

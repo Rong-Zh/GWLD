@@ -18,10 +18,26 @@ int main() {
     try {
         std::vector<std::pair<const char*,GWLD::CountKernel>> kernels={{"portable",GWLD::count_packed_portable},{"automatic",nullptr}};
         #if defined(GWLD_X86_SIMD)
-        if (__builtin_cpu_supports("popcnt")) kernels.emplace_back("popcnt",GWLD::count_packed_native);
-        if (__builtin_cpu_supports("avx2")) kernels.emplace_back("avx2",GWLD::count_packed_avx2<>);
+        // A hypervisor can mask POPCNT independently from the vector features.
+        // Check pointer selection without executing an unsupported kernel.
+        for (std::size_t words:{0,8,16,128}) {
+            if (GWLD::select_x86_count_kernel(words,false,true,true)!=GWLD::count_packed_portable)
+                throw std::runtime_error("SIMD dispatch requires scalar POPCNT");
+            if (GWLD::select_x86_count_kernel(words,true,false,true)!=GWLD::count_packed_native)
+                throw std::runtime_error("Scalar POPCNT dispatch mismatch");
+        }
+        if (GWLD::select_x86_count_kernel(15,true,true,false)!=GWLD::count_packed_native ||
+            GWLD::select_x86_count_kernel(16,true,true,false)!=GWLD::count_packed_avx2<>)
+            throw std::runtime_error("AVX2 dispatch size boundary mismatch");
         #if defined(GWLD_X86_AVX512)
-        if (__builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512vpopcntdq"))
+        if (GWLD::select_x86_count_kernel(7,true,true,true)!=GWLD::count_packed_native ||
+            GWLD::select_x86_count_kernel(8,true,true,true)!=GWLD::count_packed_avx512<>)
+            throw std::runtime_error("AVX512 dispatch size boundary mismatch");
+        #endif
+        if (__builtin_cpu_supports("popcnt")) kernels.emplace_back("popcnt",GWLD::count_packed_native);
+        if (__builtin_cpu_supports("popcnt") && __builtin_cpu_supports("avx2")) kernels.emplace_back("avx2",GWLD::count_packed_avx2<>);
+        #if defined(GWLD_X86_AVX512)
+        if (__builtin_cpu_supports("popcnt") && __builtin_cpu_supports("avx2") && __builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512vpopcntdq"))
             kernels.emplace_back("avx512vpopcntdq",GWLD::count_packed_avx512<>);
         #endif
         #elif defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__))

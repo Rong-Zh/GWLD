@@ -17,6 +17,8 @@ ped2matrix(FilePrefix, genotype = c("int", "char"), ...)
 plink format(.ped, .map) to  matrix
 }
 \details{
+Positions normally use numeric storage. If any coordinate exceeds 2^53, the
+POS column uses exact decimal text. Fractional or out-of-range positions are rejected.
 Integer genotypes count non-major alleles. Missing PED alleles (0)
 become NA; frequency ties use lexical allele order. No intermediate genotype
 strings are constructed for integer output.

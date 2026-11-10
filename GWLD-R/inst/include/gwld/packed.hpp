@@ -114,8 +114,10 @@ GWLD_FORCE_INLINE Counts count_packed_neon(const std::uint64_t* a,const std::uin
 #if defined(GWLD_X86_SIMD)
 // AVX2 has no vector POPCNT: count low/high nibbles through a byte lookup.
 // Flush byte accumulators after 31 vectors (31*8=248), before they wrap.
+// Clang can introduce scalar POPCNT in the tails. Declare that requirement
+// explicitly and check it together with the vector ISA during dispatch.
 template<bool Complete=false>
-__attribute__((target("avx2")))
+__attribute__((target("avx2,popcnt")))
 GWLD_FORCE_INLINE Counts count_packed_avx2(const std::uint64_t* a,const std::uint64_t* b,std::size_t words) {
     const __m256i lookup=_mm256_setr_epi8(0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4,
                                          0,1,1,2,1,2,2,3,1,2,2,3,2,3,3,4);
@@ -148,8 +150,9 @@ GWLD_FORCE_INLINE Counts count_packed_avx2(const std::uint64_t* a,const std::uin
 #endif
 #if defined(GWLD_X86_AVX512)
 // AVX512F alone does not provide vector population counts; require VPOPCNTDQ.
+// Compiler-generated reductions/tails can also use AVX2 and scalar POPCNT.
 template<bool Complete=false>
-__attribute__((target("avx512f,avx512vpopcntdq")))
+__attribute__((target("avx2,avx512f,avx512vpopcntdq,popcnt")))
 GWLD_FORCE_INLINE Counts count_packed_avx512(const std::uint64_t* a,const std::uint64_t* b,std::size_t words) {
     Counts result;
     for (unsigned i=0;i<(Complete ? 2u:3u);++i) for (unsigned j=0;j<(Complete ? 2u:3u);++j) {
@@ -177,15 +180,27 @@ GWLD_FORCE_INLINE FourCounts four_counts(const Counts& c) {
 }
 typedef FourCounts (*FourCountKernel)(const std::uint64_t*,const std::uint64_t*,std::size_t);
 typedef Counts (*CountKernel)(const std::uint64_t*,const std::uint64_t*,std::size_t);
+#if defined(GWLD_X86_SIMD)
+inline CountKernel select_x86_count_kernel(std::size_t words,bool popcnt,bool avx2,bool avx512) {
+    if (!popcnt) return count_packed_portable;
+    #if defined(GWLD_X86_AVX512)
+    if (words>=8 && avx2 && avx512) return count_packed_avx512<>;
+    #else
+    (void)avx512;
+    #endif
+    if (words>=16 && avx2) return count_packed_avx2<>;
+    return count_packed_native;
+}
+#endif
 inline CountKernel select_count_kernel(std::size_t words=0) {
     (void)words;
     #if (defined(__GNUC__) || defined(__clang__)) && (defined(__x86_64__) || defined(__i386__))
+    bool avx512=false;
     #if defined(GWLD_X86_AVX512)
-    if (words>=8 && __builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512vpopcntdq"))
-        return count_packed_avx512<>;
+    avx512=__builtin_cpu_supports("avx512f") && __builtin_cpu_supports("avx512vpopcntdq");
     #endif
-    if (words>=16 && __builtin_cpu_supports("avx2")) return count_packed_avx2<>;
-    return __builtin_cpu_supports("popcnt") ? count_packed_native : count_packed_portable;
+    return select_x86_count_kernel(words,__builtin_cpu_supports("popcnt"),
+                                   __builtin_cpu_supports("avx2"),avx512);
     #elif defined(_MSC_VER) && defined(_M_X64)
     int registers[4]; __cpuid(registers,1);
     return (registers[2]&(1<<23)) ? count_packed_native : count_packed_portable;
@@ -213,13 +228,13 @@ inline FourCounts count_four_neon(const std::uint64_t* a,const std::uint64_t* b,
 }
 #endif
 #if defined(GWLD_X86_SIMD)
-__attribute__((target("avx2")))
+__attribute__((target("avx2,popcnt")))
 inline FourCounts count_four_avx2(const std::uint64_t* a,const std::uint64_t* b,std::size_t words) {
     return four_counts(count_packed_avx2<true>(a,b,words));
 }
 #endif
 #if defined(GWLD_X86_AVX512)
-__attribute__((target("avx512f,avx512vpopcntdq")))
+__attribute__((target("avx2,avx512f,avx512vpopcntdq,popcnt")))
 inline FourCounts count_four_avx512(const std::uint64_t* a,const std::uint64_t* b,std::size_t words) {
     return four_counts(count_packed_avx512<true>(a,b,words));
 }

@@ -146,11 +146,29 @@ int main() {
         const GWLD::Window window(sites);
         require(window.partners(0,sites[0],1000)==std::vector<std::size_t>({2,4}),"Unsorted window or duplicate position failed");
         require(window.partners(0,sites[0],0)==std::vector<std::size_t>({4}),"Zero-distance window failed");
+        require(GWLD::position("9007199254740993")==9007199254740993LL,"Integer coordinate rounded above 2^53");
+        require(GWLD::position("4611686018427387903")==4611686018427387903LL,"Maximum safe integer coordinate failed");
+        require(GWLD::position("4.611686018427387903e18")==4611686018427387903LL,"Scientific coordinate rounded");
+        require(GWLD::position("9.007199254740993e15")==9007199254740993LL,"Scientific integer precision lost");
+        for (const auto* zero : {"0", "-0", ".0", "0e999999999999999999999999"})
+            require(GWLD::position(zero)==0,"Zero position parsing failed");
+        for (const auto* five : {"5", "+5", " 5", "5.000", "50e-1", ".5e1", "500000e-5"})
+            require(GWLD::position(five)==5,"Integral decimal position parsing failed");
         require(GWLD::position("5000000000")==5000000000LL,"Large position parsing failed");
-        for (const auto* value : {"4611686018427387904", "9223372036854775808", "-1", "1.5", "nan"}) {
+        for (const auto* value : {"4611686018427387904", "9223372036854775808", "-1", "1.5", "nan", "1.00000000000000001", "4611686018427387903.1", "1e-1000000", "1e999999999999999999999999", "1e", "1e+", "1e--1", "1.2.3", "5 ", "0x10", "", "+", "."}) {
             bool rejected=false;
             try { GWLD::position(value); } catch (const std::exception&) { rejected=true; }
             require(rejected,"Invalid or unsafe position accepted");
+        }
+        for (int trial=0;trial<1000;++trial) {
+            const auto expected=static_cast<std::int64_t>(((static_cast<std::uint64_t>(random())<<32)|random())&((UINT64_C(1)<<62)-1));
+            const auto digits=std::to_string(expected);
+            const auto scientific=digits.substr(0,1)+"."+digits.substr(1)+"e"+std::to_string(digits.size()-1);
+            require(GWLD::position(digits)==expected && GWLD::position(scientific)==expected,
+                    "Exact integer/scientific position round trip failed");
+            bool rejected=false;
+            try { GWLD::position(digits+".00000000000000001"); } catch (const std::invalid_argument&) { rejected=true; }
+            require(rejected,"Fractional position rounded to an integer");
         }
         require(GWLD::parse_method("r2")==GWLD::parse_method("r^2"),"r2 alias failed");
         std::cout<<"Core numerical and window tests passed\n";

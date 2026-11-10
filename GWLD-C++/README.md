@@ -141,7 +141,7 @@ The shared engine keeps multiple counting implementations and selects an availab
 | Platform | Paths |
 | --- | --- |
 | ARM64 GCC/Clang | NEON and portable counting. |
-| x86 GCC/Clang | AVX512F + VPOPCNTDQ for at least eight 64-bit words; otherwise AVX2 for at least sixteen words; otherwise POPCNT when supported, then SWAR. |
+| x86 GCC/Clang | AVX512F + VPOPCNTDQ + AVX2 + scalar POPCNT for at least eight 64-bit words; otherwise AVX2 + scalar POPCNT for at least sixteen words; otherwise POPCNT when supported, then SWAR. |
 | MSVC x64 | POPCNT when supported, with SWAR fallback. |
 
 No global `-mavx2`, `-mavx512*` or `-march=native` is required. AVX2 byte accumulators are reduced every 31 vectors; NEON accumulators every 4095 vectors. Scalar tails handle partial vectors. Complete columns use four intersections to reconstruct the 3×3 table from known marginals.
@@ -201,3 +201,7 @@ cmake --build build -j
 The scalar engine benchmark uses the current solver and formulas, so it isolates counting/caching effects; it is not a frozen 1.x or historical 2.0 binary. The original-version benchmark instead links `tests/legacy/methods.cpp` and `utils_reference.cpp`, preserving the algorithms from `c8079ab`.
 
 See [measured results and methodology](../docs/performance.md), [Windows/WSL raw results and reproduction commands](../tests/benchmarks/2026-11-09/README.md), [macOS raw results](../tests/benchmarks/2026-11-07-v1-v2.tsv) and [legacy reference notes](tests/legacy/README.md). Historical 1.x manuals remain in the repository; use this reference and `--help` for 2.0 behavior.
+
+## Assembly inspection
+
+See [the assembly-assisted review](../tests/assembly/README.md) for reproducible probes, generated-instruction checks, corrected ISA dispatch requirements and coordinate-precision regressions.
