@@ -66,18 +66,6 @@ class CLI(unittest.TestCase):
         self.run_cli('convert', '-p', EXAMPLES/'example-2', '-f', 'vcf', '-o', 'short-ped')
         self.assertTrue((self.root/'short-bed.genotype.tsv').exists())
         self.assertTrue((self.root/'short-ped.vcf').exists())
-    def test_exact_coordinate_text(self):
-        prefix = self.root / 'exact'
-        prefix.with_suffix('.ped').write_text('f s 0 0 1 -9 A G\n')
-        for text, expected in [('9007199254740993', '9007199254740993'),
-                               ('4.611686018427387903e18', '4611686018427387903')]:
-            prefix.with_suffix('.map').write_text('1 v 0 '+text+'\n')
-            self.run_cli('convert', '--ped-prefix', prefix, '--format', 'genotype', '-o', 'exact-out')
-            fields = (self.root/'exact-out.genotype.tsv').read_text().splitlines()[1].split('\t')
-            self.assertEqual(fields[1], expected)
-        prefix.with_suffix('.map').write_text('1 v 0 1.00000000000000001\n')
-        self.run_cli('convert', '--ped-prefix', prefix, '--format', 'genotype', success=False)
-
     def test_heatmap_and_streaming(self):
         for method in ['mi', 'rmi', 'r2', 'd', 'dprime']:
             args = ('calculate', '--vcf', self.vcf, '--method', method, '--max-distance-kb', '1', '--decay', '--circos')

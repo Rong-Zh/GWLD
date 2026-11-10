@@ -31,19 +31,13 @@ Ordinary AVX2-capable machines normally provide scalar POPCNT too, but the dispa
 
 `simd_test.cpp` checks the selection result for simulated feature sets where AVX2/AVX-512 are advertised but scalar POPCNT is absent. It compares pointers without calling instructions unsupported by the executing CPU. Actual forced-kernel tests also check the complete required feature set before execution.
 
-### 2. Coordinate text silently rounded through floating point
+### 2. Keep coordinate handling scoped to genomic data
 
-The old parser used `std::stold`. On the reviewed ARM64 macOS toolchain, `long double` has the same integer precision as `double`. Reproductions before the fix were:
+C++ coordinates remain `int64_t`; R readers consistently return numeric POS columns. There is no automatic switch to character columns and no special handling for coordinates above 2^53, which are outside the intended genomic workload.
 
-| Input text | Old result | Correct handling |
-| --- | --- | --- |
-| `9007199254740993` | `9007199254740992` | Preserve the exact integer. |
-| `1.00000000000000001` | `1` | Reject a fractional coordinate. |
-| `4.611686018427387903e18` | Rejected after rounding | Accept the exact safe maximum `4611686018427387903`. |
+Ordinary integer text is parsed directly into `int64_t` with `from_chars`. A short fallback accepts scientific notation produced by R for ordinary numeric coordinates. Nonnegative, integral and range checks remain in place. The existing `INT64_MAX/2` bound protects subsequent distance arithmetic.
 
-Ordinary integers now use integer `from_chars`. Decimal/scientific notation is parsed as an exact decimal coefficient and exponent; fractional results and range overflow are rejected. The existing nonnegative coordinate range, capped at `INT64_MAX/2`, remains in effect. Numeric metadata such as `5e9` remains accepted. Hexadecimal floating-point spellings are rejected; coordinates use decimal notation.
-
-The core tests include 1,000 deterministic integer/scientific round trips and rejection of fractional suffixes. CLI tests check the actual PLINK-to-genotype export. R tests pass character metadata above 2^53 through pair calculation and verify an exact one-base distance. This does not recover precision already lost when a caller constructs a large coordinate as an R double; exact high-range metadata must be supplied as text. VCF, PED and BED readers now switch the whole POS column to exact decimal text when any coordinate exceeds 2^53; ordinary coordinates retain numeric storage. Invalid fractional MAP/BIM positions are rejected at read time.
+The initially added arbitrary decimal parser and oversized-coordinate text adapters were removed after scope review. Tests retain ordinary genomic coordinates, scientific notation, invalid fractional/negative input and the existing 5-billion-base example. R reader metadata keeps a stable numeric type.
 
 ## Assembly observations
 
@@ -82,7 +76,7 @@ Completed checks on 2026-11-10:
 - Native GCC 16 core/SIMD tests.
 - macOS x86_64 core and SIMD/dispatch tests executed through Rosetta; only portable/POPCNT runtime paths are available there.
 - Native NEON execution and both native/x86 assembly inspections.
-- R package installation and all six R test scripts in OpenMP and serial builds, including CLI/R VCF integration and exact-coordinate reader checks.
+- R package installation and all six R test scripts in OpenMP and serial builds, including CLI/R VCF integration and numeric-coordinate reader checks.
 - R CMD check with no errors, warnings or notes.
 - The complete R example, paper-subset validation and native interruption tests.
 

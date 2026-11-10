@@ -358,62 +358,18 @@ public:
     }
 };
 inline std::int64_t position(const std::string& value) {
-    const auto fail=[&]() -> std::int64_t { throw std::invalid_argument("Invalid site position: "+value); };
-    constexpr std::uint64_t maximum=static_cast<std::uint64_t>(std::numeric_limits<std::int64_t>::max()/2);
-    const char* begin=value.data(); const char* end=begin+value.size();
-    while (begin!=end && (*begin==' ' || *begin=='\t' || *begin=='\r' || *begin=='\n' || *begin=='\f' || *begin=='\v')) ++begin;
-    bool negative=false;
-    if (begin!=end && (*begin=='+' || *begin=='-')) { negative=*begin=='-';++begin; }
-    // Ordinary integer coordinates never pass through floating point. On ARM64
-    // macOS long double has only double precision and rounded values above 2^53.
-    std::uint64_t parsed=0;
-    const auto integer=std::from_chars(begin,end,parsed);
-    if (integer.ptr==end && integer.ec==std::errc()) {
-        if (parsed>maximum || (negative && parsed)) return fail();
-        return static_cast<std::int64_t>(parsed);
+    std::int64_t coordinate=0;
+    const auto integer=std::from_chars(value.data(),value.data()+value.size(),coordinate);
+    if (integer.ec==std::errc() && integer.ptr==value.data()+value.size()) {
+        if (coordinate>=0 && coordinate<=std::numeric_limits<std::int64_t>::max()/2) return coordinate;
+        throw std::invalid_argument("Invalid site position: "+value);
     }
-    // R metadata may use scientific notation. Parse the decimal coefficient and
-    // exponent exactly, rejecting fractional values rather than rounding them.
-    if (value.size()>static_cast<std::size_t>(std::numeric_limits<std::int64_t>::max()/4)) return fail();
-    std::string digits; std::size_t fractional=0; bool point=false;
-    const char* cursor=begin;
-    while (cursor!=end) {
-        if (*cursor>='0' && *cursor<='9') {
-            digits.push_back(*cursor++); if (point) ++fractional;
-        } else if (*cursor=='.' && !point) { point=true;++cursor; }
-        else break;
-    }
-    if (digits.empty()) return fail();
-    std::int64_t exponent=0; bool exponent_negative=false;
-    if (cursor!=end && (*cursor=='e' || *cursor=='E')) {
-        ++cursor;
-        if (cursor!=end && (*cursor=='+' || *cursor=='-')) { exponent_negative=*cursor=='-';++cursor; }
-        const char* exponent_begin=cursor;
-        const auto cap=static_cast<std::int64_t>(value.size())+64;
-        while (cursor!=end && *cursor>='0' && *cursor<='9') {
-            const int digit=*cursor++-'0';
-            exponent=exponent>(cap-digit)/10 ? cap : exponent*10+digit;
-        }
-        if (cursor==exponent_begin) return fail();
-    }
-    if (cursor!=end) return fail();
-    const auto first=digits.find_first_not_of('0');
-    if (first==std::string::npos) return 0;
-    if (negative) return fail();
-    const auto last=digits.find_last_not_of('0');
-    const auto scale=(exponent_negative ? -exponent : exponent)-static_cast<std::int64_t>(fractional)
-        +static_cast<std::int64_t>(digits.size()-last-1);
-    if (scale<0 || scale>18 || last-first+1>19-static_cast<std::size_t>(scale)) return fail();
-    parsed=0;
-    for (auto i=first;i<=last;++i) {
-        const unsigned digit=digits[i]-'0';
-        if (parsed>(maximum-digit)/10) return fail();
-        parsed=parsed*10+digit;
-    }
-    for (std::int64_t i=0;i<scale;++i) {
-        if (parsed>maximum/10) return fail();
-        parsed*=10;
-    }
-    return static_cast<std::int64_t>(parsed);
+    // R may format ordinary numeric metadata in scientific notation.
+    std::size_t used=0;
+    const auto numeric=std::stold(value,&used);
+    if (used!=value.size() || !std::isfinite(numeric) || numeric<0 ||
+        std::floor(numeric)!=numeric || numeric>=std::ldexp(1.0L,62))
+        throw std::invalid_argument("Invalid site position: "+value);
+    return static_cast<std::int64_t>(numeric);
 }
 } // namespace GWLD

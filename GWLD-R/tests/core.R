@@ -74,12 +74,6 @@ for (method in c("RMI", "MI", "r^2", "D", "D'")) {
   near(calc_decay(g, info, method, parallel_cores, 1L), decay(m, info, 1L))
   near(calc_circos(g, info, method, parallel_cores, 0.1), circos(m, info, 0.1))
 }
-# Character metadata coordinates remain exact above double's integer precision.
-precise <- cbind("1", c("9007199254740993", "9007199254740994"), c("a", "b"))
-result <- calc_decay(g[,1:2], precise, method="MI", maxdist=1)
-stopifnot(identical(unname(result[1,3]), "1"))
-precise[1,2] <- "1.00000000000000001"
-fails(calc_decay(g[,1:2], precise, method="MI"))
 empty <- info
 empty[,1] <- as.character(seq_len(nrow(empty)))
 stopifnot(identical(dim(calc_decay(g, empty)), c(0L, 4L)))

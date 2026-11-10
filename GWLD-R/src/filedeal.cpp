@@ -14,32 +14,16 @@ using namespace Rcpp;
 using namespace arma;
 using namespace std;
 
-namespace {
-template<class Get>
-Rcpp::RObject wrap_positions(std::size_t n,Get get) {
-    bool text=false;
-    for (std::size_t i=0;i<n;++i) if (get(i)>(INT64_C(1)<<53)) { text=true;break; }
-    if (text) {
-        Rcpp::CharacterVector result(n);
-        for (std::size_t i=0;i<n;++i) result[i]=std::to_string(get(i));
-        return result;
-    }
-    Rcpp::NumericVector result(n);
-    for (std::size_t i=0;i<n;++i) result[i]=static_cast<double>(get(i));
-    return result;
-}
-}
-
-// Internal metadata adapter: validate before choosing an R storage type.
+// Validate ordinary genomic positions without changing the R column type.
 // [[Rcpp::export(rng = false)]]
-Rcpp::RObject parse_positions(Rcpp::CharacterVector values) {
-    std::vector<std::int64_t> parsed(values.size());
+Rcpp::NumericVector parse_positions(Rcpp::CharacterVector values) {
+    Rcpp::NumericVector result(values.size());
     for (R_xlen_t i=0;i<values.size();++i) {
         if (Rcpp::CharacterVector::is_na(values[i])) Rcpp::stop("Site positions must not be missing");
-        parsed[i]=GWLD::position(Rcpp::as<std::string>(values[i]));
+        result[i]=static_cast<double>(GWLD::position(Rcpp::as<std::string>(values[i])));
         if (i%4096==0) Rcpp::checkUserInterrupt();
     }
-    return wrap_positions(parsed.size(),[&](std::size_t i) { return parsed[i]; });
+    return result;
 }
 
 // [[Rcpp::export]]
@@ -83,9 +67,9 @@ Rcpp::List read_vcf_matrix(std::string filename,int threads=1) {
     std::transform(data.genotypes.begin(),data.genotypes.end(),genotypes.begin(),
         [](std::int8_t code) { return code<0 ? NA_INTEGER : static_cast<int>(code); });
     Rcpp::CharacterVector chr(data.sites.size()),ids(data.sites.size());
-    Rcpp::RObject positions=wrap_positions(data.sites.size(),[&](std::size_t i) { return data.sites[i].pos; });
+    Rcpp::NumericVector positions(data.sites.size());
     for (std::size_t i=0;i<data.sites.size();++i) {
-        chr[i]=data.sites[i].chr; ids[i]=data.sites[i].id;
+        chr[i]=data.sites[i].chr; ids[i]=data.sites[i].id; positions[i]=data.sites[i].pos;
     }
     Rcpp::rownames(genotypes)=Rcpp::wrap(data.samples); Rcpp::colnames(genotypes)=ids;
     return Rcpp::List::create(Rcpp::Named("Info")=Rcpp::DataFrame::create(

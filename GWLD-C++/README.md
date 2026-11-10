@@ -204,4 +204,4 @@ See [measured results and methodology](../docs/performance.md), [Windows/WSL raw
 
 ## Assembly inspection
 
-See [the assembly-assisted review](../tests/assembly/README.md) for reproducible probes, generated-instruction checks, corrected ISA dispatch requirements and coordinate-precision regressions.
+See [the assembly-assisted review](../tests/assembly/README.md) for reproducible probes, generated-instruction checks, corrected ISA dispatch requirements and coordinate validation.

@@ -54,13 +54,6 @@ if (nzchar(cli)) {
   near(as.matrix(read.table(paste0(prefix,".heatmap"))),GWLD(expected,method="MI"))
   near(as.matrix(read.table(paste0(prefix,".decay"),colClasses="character")),calc_decay(expected,data$Info,method="MI"))
 }
-# POS remains exact when VCF coordinates exceed the precision of an R double.
-large_path <- file.path(root,"large-position.vcf")
-writeLines(c("##fileformat=VCFv4.2", "##contig=<ID=1>",
-             '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
-             "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\ts1",
-             "1\t9007199254740993\ta\tA\tG\t.\t.\t.\tGT\t0/1"),large_path)
-stopifnot(identical(vcf2matrix(large_path)$Info$POS,"9007199254740993"))
 writeChar(header,path,eos=NULL,useBytes=TRUE)
 stopifnot(identical(dim(read.vcf(path)),c(0L,13L)))
 fails(vcf2matrix(path))

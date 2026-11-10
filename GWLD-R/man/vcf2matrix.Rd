@@ -21,8 +21,6 @@ List with variant metadata in Info and an integer Genotype matrix coded
 vcf file to matrix
 }
 \details{
-Positions normally use numeric storage. If any coordinate exceeds 2^53, the
-POS column uses exact decimal text. Fractional or out-of-range positions are rejected.
 Uses the shared HTSlib reader. Sample names are preserved unchanged.
 Supports biallelic diploid GT. Unlike version 1.x, Genotype contains integer
 genotype codes rather than GT text strings.

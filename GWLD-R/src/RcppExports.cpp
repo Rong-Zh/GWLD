@@ -48,7 +48,7 @@ BEGIN_RCPP
 END_RCPP
 }
 // parse_positions
-Rcpp::RObject parse_positions(Rcpp::CharacterVector values);
+Rcpp::NumericVector parse_positions(Rcpp::CharacterVector values);
 RcppExport SEXP _GWLD_parse_positions(SEXP valuesSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;

@@ -6,8 +6,7 @@
 #' @details Integer genotypes count non-major alleles. Missing PED alleles (0)
 #' become NA; frequency ties use lexical allele order. No intermediate genotype
 #' strings are constructed for integer output.
-#' Positions normally use numeric storage; if any exceeds 2^53, the POS column
-#' uses exact decimal text. Fractional or out-of-range positions are rejected.
+#' POS uses numeric storage. Negative, fractional or out-of-range positions are rejected.
 #' Sample names use FID:IID; percent signs and colons within each component
 #' are escaped, and duplicate family/individual pairs are rejected.
 #' @param ... NULL
@@ -59,8 +58,6 @@ ped2matrix <- function(FilePrefix, genotype = c("int", "char"), ...) {
 #' read plink format(.bed, .bim, .fam)
 #'
 #' @rdname read.plink
-#' @details Positions are validated exactly. BIM position columns normally use
-#' numeric storage, switching to decimal text if any position exceeds 2^53.
 #' @param FilePrefix plink format(.bed, .bim, .fam) file's prefix
 #' @param ... NULL
 #' @importFrom utils read.table
@@ -91,8 +88,6 @@ read.plink <- function(FilePrefix, ...) {
 #' plink format(.bed, .bim, .fam) to matrix
 #'
 #' @rdname bed2matrix
-#' @details Info POS is numeric unless any coordinate exceeds 2^53; then it
-#' uses exact decimal text. Fractional or out-of-range positions are rejected.
 #' @param FilePrefix plink format(.bed, .bim, .fam) file's prefix
 #' @param ... NULL
 #' @return list
@@ -117,8 +112,6 @@ bed2matrix <- function(FilePrefix, ...) {
 #' @details Uses the shared HTSlib reader. Genotype is an integer matrix with
 #' samples as rows and variants as columns, coded 0/1/2/NA. Sample names are
 #' preserved without replacing underscores. Supports biallelic diploid GT.
-#' Info POS is numeric unless a coordinate exceeds 2^53, in which case the
-#' column uses exact decimal text to preserve all integer coordinates.
 #' @export
 vcf2matrix <- function(file, threads = 1L, ...) {
   .Call("_GWLD_read_vcf_matrix", path.expand(file), .whole_number(threads, "threads"), PACKAGE = "GWLD")
