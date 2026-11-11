@@ -1,6 +1,9 @@
 // Stable names expose optimized kernels for inspection without Armadillo/R.
 #include "gwld/packed.hpp"
 extern "C" {
+__attribute__((noinline)) void gwld_pack_probe(const int* g,std::size_t rows,std::size_t words,std::uint64_t* out) {
+    GWLD::packing_detail::column(g,rows,words,out);
+}
 __attribute__((noinline)) void gwld_summary_probe(const int* g,std::size_t n,GWLD::Summary* out) {
     *out=GWLD::summarize(g,n);
 }

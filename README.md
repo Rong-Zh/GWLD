@@ -25,9 +25,9 @@ See [CHANGELOG.md](CHANGELOG.md) for compatibility details and [performance meas
 
 The baseline is commit `c8079ab`, the original implementation on `master` immediately before the 2.0 rewrite. These are **direct measurements against 1.x**, rather than products of speedups measured between intermediate 2.0 versions.
 
-The table below measures full upper-triangular matrix calculations on macOS arm64 with LLVM 22.1.8, Release `-O3`, one thread, 512 samples, 384 variants and 25% missing genotypes. Both versions receive the same generated matrix. Each path is warmed up, then timed three times in alternating order; the table reports medians. Timing includes the calculation engine's preparation and matrix allocation, but excludes input generation, file I/O and plotting.
+The table below was measured on 2026-11-07 with 2.0 kernels at `c77d8f4`. It measures full upper-triangular matrix calculations on macOS arm64 with LLVM 22.1.8, Release `-O3`, one thread, 512 samples, 384 variants and 25% missing genotypes. Both versions receive the same generated matrix. Each path is warmed up, then timed three times in alternating order; the table reports medians. Timing includes the calculation engine's preparation and matrix allocation, but excludes input generation, file I/O and plotting.
 
-| Method | Original 1.x | Current 2.0 | Speedup |
+| Method | Original 1.x | Measured 2.0 (`c77d8f4`) | Speedup |
 | --- | ---: | ---: | ---: |
 | MI | 0.567922 s | 0.002099 s | 270.6× |
 | RMI | 0.589542 s | 0.004193 s | 140.6× |
@@ -38,6 +38,12 @@ The table below measures full upper-triangular matrix calculations on macOS arm6
 MI/RMI remain numerically equivalent to the original formulas within floating-point rounding. LD values can differ because 2.0 corrects and tightens the likelihood optimization; the benchmark reports those differences separately. Speedups depend on hardware, sample size, allele distribution, missingness and thread count. They describe the calculation stage, not the wall-clock speed of an entire analysis pipeline.
 
 Additional datasets, numerical differences, raw results and reproduction commands are provided in [docs/performance.md](docs/performance.md). The [Windows/WSL comparison](docs/performance.md#windows-and-wsl-on-the-same-x86-64-host), measured on 2026-11-09 on the same i5-12400 host, adds native x86-64 results, thread scaling, VCF/gzip/BGZF/BCF input timings and R encoder measurements. Both platforms passed native POPCNT/AVX2 correctness checks. AVX-512 functions have been compiled with GCC and Clang, but have not yet been executed on supporting hardware.
+
+## Latest incremental performance update
+
+The 2026-11-10 packing optimization is measured separately against `68dade2`. On native macOS ARM64 with one thread, 65,536 samples × 128 variants and 25% missing values, packing is **6.94× faster** and complete matrix-engine speedups are **2.27× for MI, 2.19× for RMI and 2.25× for r²**. These are additional 2.0-to-2.0 measurements, with byte-identical matrices; they do not update the historical 1.x table above. At 512 samples × 768 variants, gains are smaller (about 2–9% at 25% missingness).
+
+See [timings, validation and limits](docs/performance.md#incremental-packing-optimization--2026-11-10) and [reproduction commands](tests/benchmarks/2026-11-10/README.md). The Rosetta all-missing packing case regresses; no fresh native AVX2/AVX-512 timing is claimed.
 
 ## Build the C++ program
 

@@ -255,6 +255,84 @@ inline FourCountKernel select_complete_count_kernel(CountKernel selected) {
     #endif
 }
 
+// Form an entire bit-plane word in registers, then write each plane once.
+// The old scatter loop branched and performed a read/modify/write per sample.
+namespace packing_detail {
+struct Block { std::uint64_t zero,one,two; unsigned invalid; };
+#if (defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__))) || \
+    (defined(GWLD_X86_SIMD) && defined(__x86_64__))
+GWLD_FORCE_INLINE Block block16(const int* input) {
+    #if defined(__aarch64__)
+    const auto a=vld1q_s32(input),b=vld1q_s32(input+4);
+    const auto c=vld1q_s32(input+8),d=vld1q_s32(input+12);
+    const std::uint32_t weights_data[]={1,2,4,8};
+    const auto weights=vld1q_u32(weights_data);
+    const auto mask=[&](int code) {
+        const auto value=vdupq_n_s32(code);
+        auto bits=vandq_u32(vceqq_s32(a,value),weights);
+        bits=vorrq_u32(bits,vandq_u32(vceqq_s32(b,value),vshlq_n_u32(weights,4)));
+        bits=vorrq_u32(bits,vandq_u32(vceqq_s32(c,value),vshlq_n_u32(weights,8)));
+        bits=vorrq_u32(bits,vandq_u32(vceqq_s32(d,value),vshlq_n_u32(weights,12)));
+        return vaddvq_u32(bits);
+    };
+    auto invalid=vdupq_n_u32(0);
+    for (auto value:{a,b,c,d}) {
+        auto bad=vcgtq_u32(vaddq_u32(vreinterpretq_u32_s32(value),vdupq_n_u32(1)),vdupq_n_u32(3));
+        bad=vbicq_u32(bad,vceqq_s32(value,vdupq_n_s32(std::numeric_limits<int>::min())));
+        invalid=vorrq_u32(invalid,bad);
+    }
+    return {mask(0),mask(1),mask(2),vmaxvq_u32(invalid)};
+    #else
+    // SSE2 is part of the x86-64 baseline; no new runtime ISA requirement.
+    const auto a=_mm_loadu_si128(reinterpret_cast<const __m128i*>(input));
+    const auto b=_mm_loadu_si128(reinterpret_cast<const __m128i*>(input+4));
+    const auto c=_mm_loadu_si128(reinterpret_cast<const __m128i*>(input+8));
+    const auto d=_mm_loadu_si128(reinterpret_cast<const __m128i*>(input+12));
+    const auto mask=[&](int code) {
+        const auto value=_mm_set1_epi32(code);
+        return static_cast<unsigned>(_mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi32(a,value))))
+            | (static_cast<unsigned>(_mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi32(b,value))))<<4)
+            | (static_cast<unsigned>(_mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi32(c,value))))<<8)
+            | (static_cast<unsigned>(_mm_movemask_ps(_mm_castsi128_ps(_mm_cmpeq_epi32(d,value))))<<12);
+    };
+    auto invalid=_mm_setzero_si128();
+    for (auto value:{a,b,c,d}) {
+        auto bad=_mm_or_si128(_mm_cmpgt_epi32(value,_mm_set1_epi32(2)),_mm_cmpgt_epi32(_mm_set1_epi32(-1),value));
+        bad=_mm_andnot_si128(_mm_cmpeq_epi32(value,_mm_set1_epi32(std::numeric_limits<int>::min())),bad);
+        invalid=_mm_or_si128(invalid,bad);
+    }
+    return {mask(0),mask(1),mask(2),static_cast<unsigned>(_mm_movemask_ps(_mm_castsi128_ps(invalid)))};
+    #endif
+}
+#endif
+inline void column(const int* input,std::size_t rows,std::size_t words,std::uint64_t* output) {
+    unsigned invalid=0;
+    for (std::size_t w=0;w<words;++w) {
+        std::uint64_t zero=0,one=0,two=0;
+        const auto end=std::min<std::size_t>(64,rows-w*64);
+        const int* current=input+w*64;
+        std::size_t k=0;
+        #if (defined(__aarch64__) && (defined(__GNUC__) || defined(__clang__))) || \
+            (defined(GWLD_X86_SIMD) && defined(__x86_64__))
+        for (;k+16<=end;k+=16) {
+            const auto block=block16(current+k);
+            zero|=block.zero<<k; one|=block.one<<k; two|=block.two<<k;
+            invalid|=block.invalid;
+        }
+        #endif
+        for (;k<end;++k) {
+            const int code=current[k];
+            zero|=static_cast<std::uint64_t>(code==0)<<k;
+            one|=static_cast<std::uint64_t>(code==1)<<k;
+            two|=static_cast<std::uint64_t>(code==2)<<k;
+            invalid|=((static_cast<unsigned>(code)+1u)>3u) & (code!=std::numeric_limits<int>::min());
+        }
+        output[w]=zero; output[words+w]=one; output[2*words+w]=two;
+    }
+    if (invalid) throw std::invalid_argument("Genotypes must be 0, 1, 2 or missing (-1/NA)");
+}
+} // namespace packing_detail
+
 class PackedGenotypes {
     std::size_t words=0;
     std::vector<std::uint64_t> bits;
@@ -267,17 +345,10 @@ public:
         if (!words || !matrix.n_cols) { bits.clear(); return; }
         if (words>bits.max_size()/3 || matrix.n_cols>bits.max_size()/(3*words))
             throw std::length_error("Packed genotype matrix is too large");
-        bits.assign(matrix.n_cols*3*words,0); kernel=selected ? selected : select_count_kernel(words);
+        bits.resize(matrix.n_cols*3*words); kernel=selected ? selected : select_count_kernel(words);
         complete_kernel=select_complete_count_kernel(kernel);
-        for (std::size_t j=0;j<matrix.n_cols;++j) {
-            const int* column=matrix.colptr(j);
-            for (std::size_t i=0;i<matrix.n_rows;++i) {
-                const int code=column[i];
-                if (code>=0 && code<=2) bits[j*3*words+code*words+i/64]|=UINT64_C(1)<<(i%64);
-                else if (code!=-1 && code!=std::numeric_limits<int>::min())
-                    throw std::invalid_argument("Genotypes must be 0, 1, 2 or missing (-1/NA)");
-            }
-        }
+        for (std::size_t j=0;j<matrix.n_cols;++j)
+            packing_detail::column(matrix.colptr(j),matrix.n_rows,words,bits.data()+j*3*words);
     }
     bool ready() const { return !bits.empty(); }
     Counts count_complete(std::size_t i,std::size_t j,const Summary& a,const Summary& b) const {

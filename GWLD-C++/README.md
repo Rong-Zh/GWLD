@@ -146,6 +146,8 @@ The shared engine keeps multiple counting implementations and selects an availab
 
 No global `-mavx2`, `-mavx512*` or `-march=native` is required. AVX2 byte accumulators are reduced every 31 vectors; NEON accumulators every 4095 vectors. Scalar tails handle partial vectors. Complete columns use four intersections to reconstruct the 3×3 table from known marginals.
 
+Packing itself now forms three bit-plane words in registers rather than scattering one bit per sample. GCC/Clang ARM64 and x86-64 builds use 16-sample NEON/SSE2 blocks respectively, with exact scalar tails and a portable fallback. This is separate from pair-counting ISA selection. See the [2026-11-10 incremental measurements](../docs/performance.md#incremental-packing-optimization--2026-11-10) for engine timings and workload limits.
+
 Packed counting is enabled for at least 128 samples and four variants; smaller inputs use the scalar path. Packed storage uses three bits per sample/variant, rounded to groups of 64 samples. MI count-log and RMI factorial caches are bounded at 8 MiB each. A separate half-integer log cache, also bounded at 8 MiB, is built only when missing-data workloads can amortize it. These tables use the original mathematical functions, without fast-math approximations.
 
 ARM64 NEON, macOS x86_64 POPCNT, x86 AVX2 under QEMU, and native Windows/WSL x86-64 POPCNT and AVX2 have been checked against portable counting. AVX-512 has been compiled with GCC and Clang but has not been run on supporting hardware. Native Windows/WSL timings are included in the [performance report](../docs/performance.md#windows-and-wsl-on-the-same-x86-64-host); QEMU timings are not used for performance claims.

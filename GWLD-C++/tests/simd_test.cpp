@@ -64,6 +64,44 @@ int main() {
                 }
             }
         }
+        // Inspect every bit, not just pair tables: a shared sample permutation
+        // could otherwise pass contingency-count comparisons unnoticed.
+        for (std::size_t n:{1,15,16,17,31,32,33,63,64,65,127,128,129}) {
+            Matrix g(n);
+            for (auto& x:g.values) {
+                const auto code=random()%5;
+                x=code<3 ? static_cast<int>(code) : code==3 ? -1 : std::numeric_limits<int>::min();
+            }
+            const auto words=(n+63)/64;
+            std::vector<std::uint64_t> bits(words*3);
+            GWLD::packing_detail::column(g.colptr(0),n,words,bits.data());
+            for (std::size_t k=0;k<words*64;++k) for (unsigned code=0;code<3;++code) {
+                const bool actual=(bits[code*words+k/64]>>(k%64))&1;
+                const bool expected=k<n && g.values[k]==static_cast<int>(code);
+                if (actual!=expected) throw std::runtime_error("Packed bit position or tail mismatch");
+            }
+            // Invalid codes must be rejected in every vector lane and tail.
+            for (int code:{3,-2,std::numeric_limits<int>::min()+1,std::numeric_limits<int>::max()})
+                for (std::size_t k=0;k<n;++k) {
+                    const auto original=g.values[k]; g.values[k]=code;
+                    bool rejected=false;
+                    try { GWLD::packing_detail::column(g.colptr(0),n,words,bits.data()); }
+                    catch (const std::invalid_argument&) { rejected=true; }
+                    g.values[k]=original;
+                    if (!rejected) throw std::runtime_error("Packing accepted an invalid genotype");
+                }
+        }
+        // Reused storage must overwrite old planes, including a shorter tail.
+        Matrix reused(129);
+        GWLD::PackedGenotypes packed;
+        packed.build(reused);
+        std::fill(reused.values.begin(),reused.values.end(),-1);
+        packed.build(reused);
+        equal_counts(GWLD::Counts{},packed.count(0,1));
+        reused=Matrix(65);
+        for (auto& x:reused.values) x=static_cast<int>(random()%3);
+        packed.build(reused);
+        equal_counts(GWLD::count(reused.colptr(0),reused.colptr(1),65),packed.count(0,1));
         std::cout<<"Validated kernels:";
         for (const auto& kernel:kernels) std::cout<<' '<<kernel.first;
         std::cout<<"; exact counts, missing values, tails and accumulator boundaries passed\n";

@@ -33,10 +33,12 @@ assembly = (out/'kernels.s').read_text()
 functions = {}
 for match in re.finditer(r'^([^\s;#][^\n]*):[^\n]*\n', assembly, re.M):
     name = match.group(1)
-    if not any(key in name for key in ('count_packed_', 'count_four_', 'gwld_neon_four_probe')):
+    if not any(key in name for key in ('count_packed_', 'count_four_', 'gwld_neon_four_probe', 'gwld_pack_probe', 'packing_detail')):
         continue
     body = assembly[match.end():].split('.cfi_endproc', 1)[0].split('.seh_endproc', 1)[0]
     functions[name] = {
+        'packing_compare': len(re.findall(r'^\s+cmeq(?:\.\w+)?\s', body, re.M)),
+        'packing_movemask': len(re.findall(r'^\s+(?:v?movmskps)\s', body, re.M)),
         'scalar_popcnt': len(re.findall(r'^\s+popcnt\w*\s', body, re.M)),
         'vector_popcnt': len(re.findall(r'^\s+vpopcnt\w*\s', body, re.M)),
         'avx2_byte_shuffle': len(re.findall(r'^\s+vpshufb\s', body, re.M)),

@@ -1,0 +1,205 @@
+{
+  "date": "2026-11-10",
+  "baseline_revision": "68dade2",
+  "system": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+  "compiler": "Homebrew Clang 22.1.8",
+  "flags": "-O3, C++17; engine uses Release -DNDEBUG and OpenMP, threads=1",
+  "seed": 2026,
+  "assembly_reports": [
+    {
+      "compiler": "Homebrew clang version 22.1.8",
+      "host": "arm64",
+      "arch": "native",
+      "functions": {
+        "_gwld_pack_probe": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD14packing_detail6columnEPKimmPy": {
+          "packing_compare": 72,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "_gwld_neon_four_probe": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 8,
+          "neon_pair_accumulate": 4
+        },
+        "__ZN4GWLD15count_four_neonEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 8,
+          "neon_pair_accumulate": 4
+        },
+        "__ZN4GWLD17count_packed_neonILb0EEENS_6CountsEPKyS3_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 18,
+          "neon_pair_accumulate": 9
+        },
+        "__ZN4GWLD21count_packed_portableEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 27,
+          "neon_pair_accumulate": 18
+        },
+        "__ZN4GWLD19count_four_portableEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 12,
+          "neon_pair_accumulate": 8
+        },
+        "__ZN4GWLD19count_packed_nativeEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 27,
+          "neon_pair_accumulate": 18
+        },
+        "__ZN4GWLD17count_four_nativeEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 12,
+          "neon_pair_accumulate": 8
+        }
+      }
+    },
+    {
+      "compiler": "Homebrew clang version 22.1.8",
+      "host": "arm64",
+      "arch": "x86_64",
+      "functions": {
+        "_gwld_pack_probe": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD14packing_detail6columnEPKimmPy": {
+          "packing_compare": 0,
+          "packing_movemask": 28,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD21count_packed_portableEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD19count_packed_avx512ILb0EEENS_6CountsEPKyS3_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 3,
+          "vector_popcnt": 21,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD17count_packed_avx2ILb0EEENS_6CountsEPKyS3_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 3,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 54,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD19count_packed_nativeEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 9,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD19count_four_portableEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD15count_four_avx2EPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 4,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 56,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD17count_four_avx512EPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 4,
+          "vector_popcnt": 14,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD17count_four_nativeEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 4,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        }
+      }
+    }
+  ],
+  "binary_sha256": {
+    "build/speed-review/before-kernel": "3b344b9c8a31cf1f6c209afb820a7c90f37414395b8c8c356dba99407d6c2b34",
+    "build/gwld_kernel_benchmark": "4abfba119e5eaebc2fdf02865133085424a4e9e4fb2f5470eea65b388f7e7ed1",
+    "build/speed-review/before-pack": "861796853d646f63d0623e041dc5b9e5336233cd071275bd666798c10b491daa",
+    "build/speed-review/after-pack": "410676718557fa5b0d77efbf1fdfbe89d084d0944acce8f56d72653014552ce1"
+  },
+  "packed_header_sha256": {
+    "before_68dade2": "53a87014c481aab1edce3ad3067938300da36354db92775fc7abc6498dbfd595",
+    "after": "f5e69abcbc12c45b646314c542d13ecb4eaf05fcab42f1d56a546c108552ad44"
+  }
+}

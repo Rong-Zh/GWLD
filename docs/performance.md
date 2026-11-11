@@ -1,10 +1,43 @@
 # Performance measurements
 
-Results are retained separately by platform and measurement date:
+Results are retained separately by baseline, platform and measurement date. Historical timings describe the recorded revisions; they are not automatically updated when code changes:
 
+- [Latest incremental macOS packing optimization, 2026-11-10](#incremental-packing-optimization--2026-11-10).
 - [Windows and WSL comparison, 2026-11-09](#windows-and-wsl-on-the-same-x86-64-host).
 - [Original macOS C++ measurements, 2026-11-07](#direct-comparison-with-the-original-implementation).
 - [Original macOS R encoding measurements, 2026-11-07](#r-genotype-encoding-versus-1x).
+
+## Incremental packing optimization — 2026-11-10
+
+This comparison uses **68dade2 as the before version** and the subsequent register-based packing implementation as the after version. It measures an additional 2.0-to-2.0 improvement. The original-version and Windows/WSL tables below retain their recorded source revisions and timings; speedups from different tables must not be multiplied.
+
+The new implementation builds three genotype bit planes in registers, writes each word once and reuses allocated storage without clearing words that will be overwritten. ARM64 uses 16-sample NEON comparisons; GCC/Clang x86-64 uses baseline SSE2 comparisons and movemasks. Existing POPCNT, AVX2 and AVX-512 pair counters and their runtime selection are unchanged. Scalar tails preserve the exact sample positions, including missing values. No statistical formula, optimizer tolerance, approximate logarithm or fast-math flag changes are involved.
+
+Native macOS 15.7.9 arm64, Homebrew Clang 22.1.8, C++17, Release `-O3 -DNDEBUG`, OpenMP enabled with **one requested thread**, seed 2026. Genotypes are synthetic uniform 0/1/2 with independently sampled missingness. Complete engine timings include preparation, summaries, packing, caches, matrix allocation and all upper-triangular calculations; input generation, file I/O, R startup and plotting are excluded.
+
+**65,536 samples × 128 variants, 25% missing:**
+
+| Measurement | Before (ms) | After (ms) | Speedup |
+| --- | ---: | ---: | ---: |
+| Packing only, reused storage | 14.390 | 2.073 | 6.94× |
+| Complete MI matrix engine | 21.858 | 9.627 | 2.27× |
+| Complete RMI matrix engine | 22.417 | 10.259 | 2.19× |
+| Complete r² matrix engine | 21.912 | 9.730 | 2.25× |
+
+**Complete engine speedups at other sizes, 25% missing:**
+
+| Samples × variants | MI | RMI | r² |
+| --- | ---: | ---: | ---: |
+| 4,096 × 128 | 2.03× | 1.70× | 1.69× |
+| 512 × 768 | 1.09× | 1.04× | 1.02× |
+
+Packing-only benchmarks warm up once and time 15 reused builds, then report the median of five alternating before/after invocations. Engine benchmarks warm up once and time three fresh-engine evaluations per method, then report the median of three alternating before/after invocations. Reuse differs deliberately between these two measurements: packing throughput is not a standalone estimate of fresh-engine speed. Millisecond and sub-millisecond measurements are sensitive to host load and CPU frequency.
+
+MI, RMI and r² matrices match the before version byte for byte in all six engine workloads (three dimensions × two missingness settings). D/D′ retain the same counting implementation and numerical solver; independent LD and regression checks pass, but no new D/D′ timings are claimed here. Output equality against this immediate baseline is distinct from the known LD differences against 1.x.
+
+Native Clang/GCC SIMD checks, address/undefined-behavior checks, six OpenMP CTest groups, five serial CTest groups, six R scripts with CLI/VCF integration and R CMD check pass. The earlier full-example, paper and serial-R workflow evidence belongs to the preceding review; those workflows were not rerun for this packing-only follow-up. The reproducible [dated report](../tests/benchmarks/2026-11-10/README.md) includes measured tables, assembly instruction counts, executable hashes and exact reproduction commands.
+
+The x86-64 packing tests also pass under Rosetta. Those supplementary translation timings are not native x86 measurements: mixed data is faster, while all-missing input takes about 33% longer (0.278 to 0.369 ms for 4,096 × 128). AVX2/AVX-512 assembly checks pass, but this follow-up did not execute those counters on supporting physical x86 hardware. Neither a universal input-independent speedup nor a new native Windows/WSL speedup follows from this measurement.
 
 ## Windows and WSL on the same x86-64 host
 
@@ -218,4 +251,4 @@ Native ARM64 NEON, scalar fallbacks, macOS x86_64 POPCNT, x86 AVX2 under QEMU, a
 
 For a reproducible explanation of the LD differences, see [independent optimizer verification](../tests/ld/README.md). It includes raw genotype export, a base-R likelihood oracle and recorded per-case evidence.
 
-For numerical and workflow checks, use CTest, R CMD check, [the paper validation script](../tests/paper/README.md) and the optional R interruption test. The latest recorded review passed both OpenMP/serial C++ configurations, serial R regressions, the full R example, native interruption checks and address/undefined-behavior checks. No tests can establish the absence of every possible defect; the benchmark reports the comparisons it actually performs.
+For numerical and workflow checks, use CTest, R CMD check, [the paper validation script](../tests/paper/README.md) and the optional R interruption test. The preceding dispatch/coordinate review passed OpenMP/serial C++ configurations, serial R regressions, the full R example, native interruption checks and address/undefined-behavior checks. The packing follow-up has its own verification scope listed above. No tests can establish the absence of every possible defect; the benchmark reports the comparisons it actually performs.

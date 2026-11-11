@@ -2,6 +2,9 @@
 
 ## Unreleased — assembly review, 2026-11-10
 
+- Build packed genotype planes in registers with 16-sample NEON/SSE2 blocks, replacing per-sample scatter updates. Preserve exact sample positions, missing/invalid-code handling and scalar tails; reuse packed allocations without redundant clearing.
+- Record incremental packing and engine benchmarks against `68dade2`, with byte-identical MI/RMI/r² matrices and explicit x86/Rosetta limits in `tests/benchmarks/2026-11-10/README.md`.
+
 - Match x86 SIMD dispatch to the instructions emitted by Clang: vector kernels now explicitly require scalar POPCNT and AVX2; the AVX-512 path additionally requires AVX512F/VPOPCNTDQ. CPUs with POPCNT masked fall back safely.
 - Keep C++ coordinates as `int64_t`, with direct integer parsing, scientific-notation compatibility and ordinary genomic range validation.
 - Keep R POS columns consistently numeric; remove the oversized-coordinate text conversion and arbitrary decimal parser. Validate ordinary MAP/BIM positions before numeric coercion.

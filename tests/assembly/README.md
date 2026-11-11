@@ -81,3 +81,7 @@ Completed checks on 2026-11-10:
 - The complete R example, paper-subset validation and native interruption tests.
 
 This review does not execute AVX2 or AVX-512 on native supporting hardware. Docker's daemon was unavailable for a fresh QEMU run. Earlier platform measurements are documented separately and do not replace runtime validation of the revised feature checks on every x86 configuration. The simulated feature-selection tests and generated x86 assembly cover the specific dispatch defect found here.
+
+## Follow-up packing optimization
+
+The subsequent packing change starts from `68dade2`. It replaces per-sample category scatters with register-built bit-plane words and 16-sample NEON/SSE2 blocks. The probes now include `gwld_pack_probe`; emitted packing compares/movemasks are recorded alongside counting instructions. See [the incremental benchmark report](../benchmarks/2026-11-10/README.md) for timing, byte-level matrix comparisons and architecture limits. The unchanged-binary statement above applies to the earlier dispatch/coordinate review, not this later packing optimization.
