@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased — R interface review, 2026-11-11
+
+- Preserve literal `NA` metadata in `read.vcf()`; restrict missing-value conversion to generated genotype placeholders.
+- Make `savefig()` apply scale and physical/pixel units, support custom device functions, validate sizes and restore the previous device after drawing errors.
+- Add VCF metadata and figure-export regressions; document verification in `docs/review-2026-11-11.md`.
+
 ## Unreleased — assembly review, 2026-11-10
 
 - Build packed genotype planes in registers with 16-sample NEON/SSE2 blocks, replacing per-sample scatter updates. Preserve exact sample positions, missing/invalid-code handling and scalar tails; reuse packed allocations without redundant clearing.

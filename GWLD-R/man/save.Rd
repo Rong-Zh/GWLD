@@ -30,8 +30,8 @@ savefig(
 
 \item{units}{"in", "cm", "mm", or "px".}
 
-\item{device}{Device to use,Can either be a device function. one of "pdf",
-"png", "jpg", "jepg", "tiff".}
+\item{device}{Device to use,Can either be a device function, or one of "pdf",
+"png", "jpg", "jpeg", "tiff".}
 
 \item{scale}{Multiplicative scaling factor.}
 
@@ -40,4 +40,11 @@ as specified by \code{device}.}
 }
 \description{
 save the plots
+}
+\details{
+Dimensions are multiplied by scale and converted to inches.
+Raster resolution is controlled by dpi; pixel dimensions are converted using dpi.
+PDF and custom device functions receive width and height in inches.
+Custom functions must open a graphics device and accept filename, width and height.
+Missing width and height default independently to 6 and 5 in the requested units.
 }

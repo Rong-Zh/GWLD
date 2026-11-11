@@ -9,7 +9,7 @@ read.vcf(filename, genotype = "None", ...)
 \arguments{
 \item{filename}{VCF, compressed VCF (.vcf.gz), or BCF filename}
 
-\item{genotype}{genotype display type, one of "None, "char", "int" and "allele"}
+\item{genotype}{genotype display type, one of "None", "char", "int" and "allele"}
 
 \item{...}{NULL}
 }
@@ -20,7 +20,9 @@ matrix
 read vcf format file
 }
 \details{
-Uses the same HTSlib reader as vcf2matrix. Text fields are formatted by HTSlib
-and may be normalized rather than preserving the original byte representation.
-Use vcf2matrix for direct integer genotype input to GWLD calculations.
+Metadata text, including literal "NA" chromosome names and IDs, is preserved.
+Missing genotype outputs become R NA in converted modes; None retains formatted text fields.
+Uses the same HTSlib reader as vcf2matrix. Text fields may be normalized rather
+than preserving the original byte representation. Use vcf2matrix for direct
+integer genotype input to GWLD calculations.
 }

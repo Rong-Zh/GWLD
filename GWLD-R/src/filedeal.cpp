@@ -118,7 +118,7 @@ Rcpp::CharacterMatrix read_vcf(std::string filename,std::string genotype) {
         else names[9+i]=samples[i];
     }
     for (std::size_t i=0;i<rows.size();++i) for (std::size_t j=0;j<columns;++j) {
-        if (rows[i][j]=="NA") result(i,j)=NA_STRING;
+        if (j>=9 && genotype!="None" && rows[i][j]=="NA") result(i,j)=NA_STRING;
         else result(i,j)=rows[i][j];
     }
     Rcpp::colnames(result)=names;

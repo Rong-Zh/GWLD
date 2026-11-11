@@ -54,6 +54,21 @@ if (nzchar(cli)) {
   near(as.matrix(read.table(paste0(prefix,".heatmap"))),GWLD(expected,method="MI"))
   near(as.matrix(read.table(paste0(prefix,".decay"),colClasses="character")),calc_decay(expected,data$Info,method="MI"))
 }
+# Literal "NA" metadata is valid text, not an R missing-value marker.
+metadata_path <- file.path(root,"literal-na.vcf")
+writeLines(c('##fileformat=VCFv4.2', '##contig=<ID=NA,length=100>',
+  '##FORMAT=<ID=GT,Number=1,Type=String,Description="Genotype">',
+  "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\tFORMAT\ts",
+  "NA\t1\tNA\tNA\tG\t.\t.\t.\tGT\t./.",
+  "NA\t2\tcalled\tNA\tG\t.\t.\t.\tGT\t0/0"),metadata_path)
+for (mode in c("None","int","char","allele")) {
+  literal <- read.vcf(metadata_path,mode)
+  stopifnot(identical(unname(literal[1,c(1L,3L,4L)]),rep("NA",3)))
+  if (mode!="None") stopifnot(is.na(literal[1,10L]))
+}
+literal <- vcf2matrix(metadata_path)
+stopifnot(identical(literal$Info$CHROM,rep("NA",2)), identical(literal$Info$ID,c("NA","called")),
+          is.na(literal$Genotype[1,1]), literal$Genotype[1,2]==0L)
 writeChar(header,path,eos=NULL,useBytes=TRUE)
 stopifnot(identical(dim(read.vcf(path)),c(0L,13L)))
 fails(vcf2matrix(path))
