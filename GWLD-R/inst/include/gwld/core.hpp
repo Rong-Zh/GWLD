@@ -39,6 +39,8 @@ inline double log_gamma_ratio(double value,unsigned multiplier) {
 }
 struct Summary {
     bool present[3] = {false, false, false};
+    // Category of a fully observed constant column; -1 otherwise.
+    signed char constant = -1;
     double p = nan();
     double counts[3] = {}, total=0;
 };
@@ -57,6 +59,7 @@ inline Summary summarize(const int* g, std::size_t n) {
     s.counts[0]=static_cast<double>(zero); s.counts[1]=static_cast<double>(one); s.counts[2]=static_cast<double>(two);
     s.present[0]=zero>0; s.present[1]=one>0; s.present[2]=two>0;
     s.total=static_cast<double>(zero+one+two);
+    for (unsigned k=0;k<3;++k) if (n && s.counts[k]==n) s.constant=static_cast<signed char>(k);
     if (s.total) s.p=(s.counts[0]+0.5*s.counts[1])/s.total;
     return s;
 }
@@ -65,6 +68,24 @@ struct Counts {
     double rows[3] = {}, cols[3] = {}, n = 0;
     double operator()(int i, int j) const { return cells[3*i+j]; }
 };
+// At least one locus must be fully observed and have one genotype category.
+// Its joint table is determined by the other locus's observed marginals,
+// including when that other locus contains missing samples.
+inline Counts count_constant(const Summary& a,const Summary& b) {
+    Counts result;
+    if (a.constant>=0) {
+        result.n=b.total; result.rows[a.constant]=b.total;
+        for (unsigned k=0;k<3;++k) {
+            result.cols[k]=b.counts[k]; result.cells[3*a.constant+k]=b.counts[k];
+        }
+    } else {
+        result.n=a.total; result.cols[b.constant]=a.total;
+        for (unsigned k=0;k<3;++k) {
+            result.rows[k]=a.counts[k]; result.cells[3*k+b.constant]=a.counts[k];
+        }
+    }
+    return result;
+}
 inline Counts count(const int* a, const int* b, std::size_t n) {
     Counts c;
     for (std::size_t k = 0; k < n; ++k) {
@@ -336,7 +357,7 @@ inline double evaluate_counts(const Counts& c,const Summary& sa,const Summary& s
 }
 inline double pair(const int* a,const int* b,std::size_t n,
                    const Summary& sa,const Summary& sb,Method method) {
-    return evaluate_counts(count(a,b,n),sa,sb,method);
+    return evaluate_counts(sa.constant>=0 || sb.constant>=0 ? count_constant(sa,sb) : count(a,b,n),sa,sb,method);
 }
 struct Site { std::string chr, id; std::int64_t pos; };
 class Window {

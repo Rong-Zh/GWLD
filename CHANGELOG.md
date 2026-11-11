@@ -1,5 +1,12 @@
 # Changelog
 
+## Unreleased — exact constant-column shortcut, 2026-11-11
+
+- Reconstruct joint counts directly from marginals when one locus is fully observed and has a single genotype category, including partners with missing samples. Preserve the existing five statistics and LD solver.
+- Select the ordinary matrix kernel once when no eligible column exists; retain scalar/packed fallbacks for partial constant columns.
+- Add independent count regressions, all-method constant-column benchmark controls and 60 byte-identical matrix comparisons against `18c656c`.
+- Record conditional speedups and hardware limits in `tests/benchmarks/2026-11-11/README.md`.
+
 ## Unreleased — R interface review, 2026-11-11
 
 - Preserve literal `NA` metadata in `read.vcf()`; restrict missing-value conversion to generated genotype placeholders.

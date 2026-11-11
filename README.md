@@ -45,6 +45,8 @@ The 2026-11-10 packing optimization is measured separately against `68dade2`. On
 
 See [timings, validation and limits](docs/performance.md#incremental-packing-optimization--2026-11-10) and [reproduction commands](tests/benchmarks/2026-11-10/README.md). The Rosetta all-missing packing case regresses; no fresh native AVX2/AVX-512 timing is claimed.
 
+The 2026-11-11 update adds an exact shortcut for pairs involving a fully observed constant genotype column. In a controlled ARM64 workload with 65,536 samples, 128 variants, 50% such columns and 25% missingness in the remaining columns, complete-engine speedups over `18c656c` are 1.95–2.12×; no-constant controls range from 0.97 to 1.03×. All five methods retain byte-identical matrices in the measured cases. See [the data conditions and results](tests/benchmarks/2026-11-11/README.md).
+
 ## Build the C++ program
 
 Requirements:

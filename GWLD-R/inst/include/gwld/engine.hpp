@@ -5,6 +5,7 @@
 namespace GWLD {
 class Engine {
     const arma::Mat<int>& genotypes;
+    bool has_constant=false;
     std::vector<Summary> summaries;
     PackedGenotypes packed;
     std::vector<double> log_factorials,count_logs,half_logs,mi_marginals;
@@ -71,12 +72,14 @@ public:
                 summary.total=counts.n;
                 for (unsigned k=0;k<3;++k) {
                     summary.counts[k]=counts.rows[k]; summary.present[k]=counts.rows[k]>0;
+                    if (counts.rows[k]==g.n_rows) summary.constant=static_cast<signed char>(k);
                 }
                 if (counts.n) summary.p=(counts.rows[0]+0.5*counts.rows[1])/counts.n;
                 summaries.push_back(summary);
             }
         } else for (arma::uword i=0;i<g.n_cols;++i)
             summaries.push_back(summarize(g.n_rows ? g.colptr(i) : nullptr,g.n_rows));
+        has_constant=std::any_of(summaries.begin(),summaries.end(),[](const Summary& s) { return s.constant>=0; });
         // Cache only when repeated pair evaluations amortize construction, and
         // bound the cache to 8 MiB even for very large sample cohorts.
         if (method==Method::RMI && g.n_rows>0 && g.n_rows<(1u<<20) &&
@@ -106,10 +109,13 @@ public:
             }
         }
     }
-    double at(std::size_t i, std::size_t j, Method method) const {
+private:
+    template<bool Constant>
+    double at_impl(std::size_t i, std::size_t j, Method method) const {
         if (!genotypes.n_rows) return nan();
         const bool complete=summaries[i].total==genotypes.n_rows && summaries[j].total==genotypes.n_rows;
-        const Counts counts=packed.ready() ?
+        const Counts counts=Constant && (summaries[i].constant>=0 || summaries[j].constant>=0) ?
+            count_constant(summaries[i],summaries[j]) : packed.ready() ?
             (complete ? packed.count_complete(i,j,summaries[i],summaries[j]) : packed.count(i,j))
             : GWLD::count(genotypes.colptr(i),genotypes.colptr(j),genotypes.n_rows);
         if (method==Method::MI && !count_logs.empty()) {
@@ -127,7 +133,8 @@ public:
         return evaluate_counts(counts,summaries[i],summaries[j],method,
                                log_factorials.empty() ? nullptr : log_factorials.data());
     }
-    arma::Mat<double> matrix(Method method, int threads, double missing=nan(),void (*checkpoint)()=nullptr) const {
+    template<bool Constant>
+    arma::Mat<double> matrix_impl(Method method, int threads, double missing,void (*checkpoint)()) const {
         if (threads<1) throw std::invalid_argument("Threads must be positive");
         arma::Mat<double> result(genotypes.n_cols,genotypes.n_cols,arma::fill::none);
         if (result.n_cols) std::fill(result.colptr(0),result.colptr(0)+result.n_rows,missing);
@@ -145,7 +152,7 @@ public:
                 // Each output element is written once: lower triangle stays missing.
                 std::fill(result.colptr(j)+j,result.colptr(j)+result.n_rows,missing);
                 for (std::int64_t i=0; i<j; ++i) {
-                    const double value=at(i,j,method);
+                    const double value=at_impl<Constant>(i,j,method);
                     result(i,j)=std::isnan(value) ? missing : value;
                 }
             }
@@ -153,5 +160,15 @@ public:
         if (checkpoint) checkpoint();
         return result;
     }
+public:
+    double at(std::size_t i,std::size_t j,Method method) const {
+        return has_constant ? at_impl<true>(i,j,method) : at_impl<false>(i,j,method);
+    }
+    arma::Mat<double> matrix(Method method,int threads,double missing=nan(),void (*checkpoint)()=nullptr) const {
+        // Select once, so ordinary matrices pay no per-pair constant checks.
+        return has_constant ? matrix_impl<true>(method,threads,missing,checkpoint)
+                            : matrix_impl<false>(method,threads,missing,checkpoint);
+    }
+
 };
 } // namespace GWLD

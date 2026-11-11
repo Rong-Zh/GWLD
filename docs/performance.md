@@ -2,10 +2,19 @@
 
 Results are retained separately by baseline, platform and measurement date. Historical timings describe the recorded revisions; they are not automatically updated when code changes:
 
-- [Latest incremental macOS packing optimization, 2026-11-10](#incremental-packing-optimization--2026-11-10).
+- [Exact constant-column optimization, 2026-11-11](#constant-column-optimization-2026-11-11).
+- [Incremental macOS packing optimization, 2026-11-10](#incremental-packing-optimization--2026-11-10).
 - [Windows and WSL comparison, 2026-11-09](#windows-and-wsl-on-the-same-x86-64-host).
 - [Original macOS C++ measurements, 2026-11-07](#direct-comparison-with-the-original-implementation).
 - [Original macOS R encoding measurements, 2026-11-07](#r-genotype-encoding-versus-1x).
+
+## Constant-column optimization (2026-11-11)
+
+A separate comparison against `18c656c` measures exact joint-table reconstruction from locus marginals whenever one column is fully observed and contains only one genotype category. This includes all-heterozygous columns; the existing LD solver still determines the result. Partners may contain missing values. Partial constant columns retain ordinary pair counting because their overlap is not determined by marginals alone.
+
+On native macOS ARM64 with one thread, 65,536 samples × 128 variants, 50% deliberately constant columns at shuffled positions and 25% missingness in the remaining columns, complete engine speedups are **2.00× MI, 1.95× RMI, 2.12× r², 2.10× D and 2.04× D′**. This is a synthetic feature-specific workload (about 12.5% missing overall), not a typical-data or complete CLI timing claim. The no-constant controls range from **0.97 to 1.03×**. All 60 compared method/workload matrices match the immediate baseline byte for byte.
+
+Matrices without eligible columns select an ordinary kernel once, without per-pair shortcut checks. Formula evaluation, optimizer tolerances, variant ordering and SIMD dispatch are preserved. See [measured timings, eligibility proof, regression checks and reproduction commands](../tests/benchmarks/2026-11-11/README.md). Earlier dated performance tables retain their own baselines and must not be multiplied into these ratios. No new native AVX2/AVX-512 speed measurement is claimed.
 
 ## Incremental packing optimization — 2026-11-10
 

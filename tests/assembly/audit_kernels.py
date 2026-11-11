@@ -33,7 +33,7 @@ assembly = (out/'kernels.s').read_text()
 functions = {}
 for match in re.finditer(r'^([^\s;#][^\n]*):[^\n]*\n', assembly, re.M):
     name = match.group(1)
-    if not any(key in name for key in ('count_packed_', 'count_four_', 'gwld_neon_four_probe', 'gwld_pack_probe', 'packing_detail')):
+    if not any(key in name for key in ('count_packed_', 'count_four_', 'gwld_neon_four_probe', 'gwld_pack_probe', 'packing_detail', 'gwld_constant_probe', 'count_constant')):
         continue
     body = assembly[match.end():].split('.cfi_endproc', 1)[0].split('.seh_endproc', 1)[0]
     functions[name] = {

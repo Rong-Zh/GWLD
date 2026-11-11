@@ -1,0 +1,240 @@
+{
+  "date": "2026-11-11",
+  "baseline_revision": "18c656c",
+  "system": "macOS-15.7.9-arm64-arm-64bit-Mach-O",
+  "compiler": "Homebrew clang version 22.1.8",
+  "flags": "C++17 -O3 -DNDEBUG -D_REENTRANT, Armadillo storage-only defines, -fopenmp=libomp; same compiler/library settings for both builds",
+  "threads": 1,
+  "genotype_seed": 2026,
+  "constant_position_seed": 2027,
+  "constant_categories": [
+    0,
+    1,
+    2
+  ],
+  "shared_header_sha256": {
+    "core.hpp": {
+      "before": "ea4a6ec377210da0662d658800a44ca08b218d8e842029dc5403a1085c497e4e",
+      "after": "2a573b7eb27fe611ec64a6e2e65bcd12a5135c53df82ec50240353924fcd467b"
+    },
+    "engine.hpp": {
+      "before": "22f03ecd0f308d487b3a67f15fb62a1077657c3fc81dd703fbb55522b6d474c7",
+      "after": "79dc33c6ff4322b1c140fbfa435a33f3be17514fe62b11efc86cfb6e11b03c73"
+    },
+    "packed.hpp": {
+      "before": "f5e69abcbc12c45b646314c542d13ecb4eaf05fcab42f1d56a546c108552ad44",
+      "after": "f5e69abcbc12c45b646314c542d13ecb4eaf05fcab42f1d56a546c108552ad44"
+    }
+  },
+  "assembly_reports": [
+    {
+      "compiler": "Homebrew clang version 22.1.8",
+      "host": "arm64",
+      "arch": "native",
+      "functions": {
+        "_gwld_constant_probe": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "_gwld_pack_probe": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD14packing_detail6columnEPKimmPy": {
+          "packing_compare": 72,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "_gwld_neon_four_probe": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 8,
+          "neon_pair_accumulate": 4
+        },
+        "__ZN4GWLD15count_four_neonEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 8,
+          "neon_pair_accumulate": 4
+        },
+        "__ZN4GWLD17count_packed_neonILb0EEENS_6CountsEPKyS3_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 18,
+          "neon_pair_accumulate": 9
+        },
+        "__ZN4GWLD21count_packed_portableEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 27,
+          "neon_pair_accumulate": 18
+        },
+        "__ZN4GWLD19count_four_portableEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 12,
+          "neon_pair_accumulate": 8
+        },
+        "__ZN4GWLD19count_packed_nativeEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 27,
+          "neon_pair_accumulate": 18
+        },
+        "__ZN4GWLD17count_four_nativeEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 12,
+          "neon_pair_accumulate": 8
+        }
+      }
+    },
+    {
+      "compiler": "Homebrew clang version 22.1.8",
+      "host": "arm64",
+      "arch": "x86_64",
+      "functions": {
+        "_gwld_constant_probe": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "_gwld_pack_probe": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD14packing_detail6columnEPKimmPy": {
+          "packing_compare": 0,
+          "packing_movemask": 28,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD21count_packed_portableEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD19count_packed_avx512ILb0EEENS_6CountsEPKyS3_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 3,
+          "vector_popcnt": 21,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD17count_packed_avx2ILb0EEENS_6CountsEPKyS3_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 3,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 54,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD19count_packed_nativeEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 9,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD19count_four_portableEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 0,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD15count_four_avx2EPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 4,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 56,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD17count_four_avx512EPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 4,
+          "vector_popcnt": 14,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        },
+        "__ZN4GWLD17count_four_nativeEPKyS1_m": {
+          "packing_compare": 0,
+          "packing_movemask": 0,
+          "scalar_popcnt": 4,
+          "vector_popcnt": 0,
+          "avx2_byte_shuffle": 0,
+          "neon_cnt": 0,
+          "neon_pair_accumulate": 0
+        }
+      }
+    }
+  ],
+  "binary_sha256": {
+    "before": "036cce50702dc7da2808867a13601bf723ea891a407058c5ff53ec8e7caf6dd7",
+    "after": "ae64e7e1fdcedb922f3652658c9c11335672f77af98b1ed04f975a52f6dec377"
+  },
+  "benchmark_source_sha256": "84f767d8bec6391b4c7cb2fe94c7e2bce084f7240a5838ff3f2efa4b55642698",
+  "comparison_driver_sha256": "88e3f70bb7269c197edd8ba8afd40570774c7bb08b662c79ecc66cd200eb2ce2"
+}

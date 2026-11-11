@@ -85,3 +85,7 @@ This review does not execute AVX2 or AVX-512 on native supporting hardware. Dock
 ## Follow-up packing optimization
 
 The subsequent packing change starts from `68dade2`. It replaces per-sample category scatters with register-built bit-plane words and 16-sample NEON/SSE2 blocks. The probes now include `gwld_pack_probe`; emitted packing compares/movemasks are recorded alongside counting instructions. See [the incremental benchmark report](../benchmarks/2026-11-10/README.md) for timing, byte-level matrix comparisons and architecture limits. The unchanged-binary statement above applies to the earlier dispatch/coordinate review, not this later packing optimization.
+
+## Constant-column count reconstruction
+
+The 2026-11-11 follow-up adds `gwld_constant_probe`. The inspected native function builds a contingency table with loads/stores and a stack buffer; it contains no population-count instructions. The matrix engine uses this only when a validated summary identifies a complete constant genotype column. Numerical formulas and vector-counter ISA selection are unchanged. See [the report and source fingerprints](../benchmarks/2026-11-11/README.md) for all-method byte comparisons and feature-specific timings.

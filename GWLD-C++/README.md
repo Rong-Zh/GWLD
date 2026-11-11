@@ -152,6 +152,8 @@ Packed counting is enabled for at least 128 samples and four variants; smaller i
 
 ARM64 NEON, macOS x86_64 POPCNT, x86 AVX2 under QEMU, and native Windows/WSL x86-64 POPCNT and AVX2 have been checked against portable counting. AVX-512 has been compiled with GCC and Clang but has not been run on supporting hardware. Native Windows/WSL timings are included in the [performance report](../docs/performance.md#windows-and-wsl-on-the-same-x86-64-host); QEMU timings are not used for performance claims.
 
+Fully observed columns containing one genotype category can reconstruct their joint tables from the partner's marginals, including a partner with missing samples. The engine classifies these columns during preparation and selects the ordinary matrix kernel when none exist. All five statistics keep their evaluation formulas and LD solver. See [the constant-column measurements and controls](../tests/benchmarks/2026-11-11/README.md).
+
 ## Tests
 
 ```bash
@@ -194,6 +196,9 @@ cmake --build build -j
 # Current engine timing: samples, variants, missing percent, threads,
 # optional matrix-output prefix, optional uniform/hwe distribution.
 ./build/gwld_kernel_benchmark 512 1536 5 1 - hwe
+
+# Optional final constant-column percentage; prints all five methods.
+./build/gwld_kernel_benchmark 65536 128 25 1 - uniform 50
 
 # Compatibility utilities and VCF input parsing.
 ./build/gwld_utils_benchmark build/utils-perf

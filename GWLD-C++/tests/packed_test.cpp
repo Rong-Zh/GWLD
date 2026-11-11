@@ -42,6 +42,37 @@ int main() {
                 }
             }
         }
+        // A complete constant genotype column determines its joint table exactly.
+        // Partial constant columns do not: their missing masks may be disjoint.
+        for (std::size_t samples:{1,16,127,128,129,513}) {
+            arma::Mat<int> g(samples,8);
+            g.col(0).fill(0); g.col(1).fill(1); g.col(2).fill(2); g.col(5).fill(missing);
+            for (std::size_t k=0;k<samples;++k) {
+                g(k,3)=static_cast<int>(random()%3);
+                g(k,4)=k%3==0 ? missing : static_cast<int>(random()%3);
+                g(k,6)=k<samples/2 ? 1 : missing;
+                g(k,7)=k<samples/2 ? missing : 2;
+            }
+            std::vector<GWLD::Summary> summaries;
+            for (arma::uword j=0;j<g.n_cols;++j) summaries.push_back(GWLD::summarize(g.colptr(j),samples));
+            for (unsigned k=0;k<3;++k) require(summaries[k].constant==static_cast<int>(k),"Constant genotype category mismatch");
+            require(summaries[5].constant==-1 && summaries[6].constant==-1,"Missing samples cannot use the constant shortcut");
+            for (auto method:{GWLD::Method::MI,GWLD::Method::RMI,GWLD::Method::R2,GWLD::Method::D,GWLD::Method::Dprime}) {
+                const GWLD::Engine engine(g,method);
+                const auto matrix=engine.matrix(method,1);
+                for (arma::uword j=1;j<g.n_cols;++j) for (arma::uword i=0;i<j;++i) {
+                    const auto expected=GWLD::count(g.colptr(i),g.colptr(j),samples);
+                    if (summaries[i].constant>=0 || summaries[j].constant>=0) {
+                        same_counts(GWLD::count_constant(summaries[i],summaries[j]),expected);
+                        same_counts(GWLD::count_constant(summaries[j],summaries[i]),GWLD::count(g.colptr(j),g.colptr(i),samples));
+                    }
+                    // Deliberately bypass pair(): it has the same shortcut.
+                    const auto value=GWLD::evaluate_counts(expected,summaries[i],summaries[j],method);
+                    same(matrix(i,j),value);
+                    same(GWLD::pair(g.colptr(i),g.colptr(j),samples,summaries[i],summaries[j],method),value);
+                }
+            }
+        }
         arma::Mat<int> edge(513,16);
         for(auto& x:edge) x=static_cast<int>(random()%4)-1;
         edge.col(0).fill(-1); edge.col(1).fill(0);
